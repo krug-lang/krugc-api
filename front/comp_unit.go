@@ -1,10 +1,17 @@
 package front
 
-import "io/ioutil"
+import (
+	"encoding/gob"
+	"io/ioutil"
+)
 
 type KrugCompilationUnit struct {
 	Name string
 	Code string
+}
+
+func init() {
+	gob.Register(KrugCompilationUnit{})
 }
 
 func ReadCompUnit(loc string) KrugCompilationUnit {
@@ -13,7 +20,7 @@ func ReadCompUnit(loc string) KrugCompilationUnit {
 		panic(err)
 	}
 	return KrugCompilationUnit{
-		Name: "nil",
+		Name: "foopa",
 		Code: string(code),
 	}
 }

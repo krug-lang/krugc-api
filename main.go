@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/krug-lang/ir"
+	"github.com/krug-lang/krugc-api/back"
 	"github.com/krug-lang/krugc-api/front"
 )
 
@@ -10,8 +12,22 @@ func main() {
 
 	f := router.Group("/front")
 	{
+		// lexical analysis
 		f.POST("/lex", front.Tokenize)
+
+		// parsing.
+		f.POST("/parse", front.Parse)
 	}
 
-	router.Run()
+	i := router.Group("/ir")
+	{
+		i.POST("/build", ir.Build)
+	}
+
+	b := router.Group("/back")
+	{
+		b.POST("/gen", back.Gen)
+	}
+
+	router.Run("localhost:8080")
 }
