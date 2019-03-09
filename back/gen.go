@@ -48,14 +48,35 @@ func (e *emitter) writeType(typ ir.Type) string {
 			return "float"
 		}
 		return "double"
+
+	case *ir.ReferenceType:
+		// FIXME
+		return t.Name
+
+	case *ir.PointerType:
+		return fmt.Sprintf("%s*", e.writeType(t.Base))
+
+	default:
+		panic(fmt.Sprintf("unhandled type %s", reflect.TypeOf(t)))
 	}
 
-	panic("unhandled type")
 }
 
 func (e *emitter) buildAlloca(a *ir.Alloca) {
 	aType := e.writeType(a.Type)
 	e.writetln(e.indentLevel, "%s %s = malloc(sizeof(*%s));", aType, a.Name, a.Name)
+}
+
+func (e *emitter) buildBuiltin(b *ir.Builtin) string {
+	bType := e.writeType(b.Type)
+	switch b.Name {
+	case "sizeof":
+		return fmt.Sprintf("sizeof(%s)", bType)
+	case "make":
+		return fmt.Sprintf("malloc(sizeof(%s))", bType)
+	default:
+		panic(fmt.Sprintf("unimplemented builtin %s", b.Name))
+	}
 }
 
 func (e *emitter) buildExpr(l ir.Value) string {
@@ -68,8 +89,19 @@ func (e *emitter) buildExpr(l ir.Value) string {
 		rh := e.buildExpr(val.RHand)
 		return fmt.Sprintf("(%s%s%s)", lh, val.Op, rh)
 
+	case *ir.Grouping:
+		value := e.buildExpr(val.Val)
+		return fmt.Sprintf("(%s)", value)
+
 	case *ir.Identifier:
 		return val.Name
+
+	case *ir.Builtin:
+		return e.buildBuiltin(val)
+
+	case *ir.UnaryExpression:
+		value := e.buildExpr(val.Val)
+		return fmt.Sprintf("(*%s)", value)
 
 	default:
 		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(val)))
@@ -88,7 +120,7 @@ func (e *emitter) buildLocal(l *ir.Local) {
 		valueCode = fmt.Sprintf(" = %s;", e.buildExpr(l.Val))
 	}
 
-	e.writetln(e.indentLevel, "%s%s %s%s", modifier, aType, l.Name, valueCode)
+	e.writetln(e.indentLevel, "/*local*/%s%s %s%s", modifier, aType, l.Name, valueCode)
 }
 
 func (e *emitter) buildRet(r *ir.Return) {
@@ -118,6 +150,13 @@ func (e *emitter) buildIfStat(iff *ir.IfStatement) {
 	}
 }
 
+func (e *emitter) buildAssign(a *ir.Assign) {
+	lh := e.buildExpr(a.LHand)
+	op := a.Op
+	rh := e.buildExpr(a.RHand)
+	e.writetln(e.indentLevel, "%s %s %s;", lh, op, rh)
+}
+
 func (e *emitter) buildInstr(i ir.Instruction) {
 	switch instr := i.(type) {
 
@@ -127,6 +166,9 @@ func (e *emitter) buildInstr(i ir.Instruction) {
 		return
 	case *ir.Local:
 		e.buildLocal(instr)
+		return
+	case *ir.Assign:
+		e.buildAssign(instr)
 		return
 
 	// ...
@@ -171,6 +213,23 @@ func (e *emitter) buildBlock(b *ir.Block) {
 	e.writetln(e.indentLevel, "}")
 }
 
+func (e *emitter) emitStructure(st *ir.Structure) {
+	// forward declare 'Struct name' as just 'name'
+	e.writetln(e.indentLevel, "typedef struct %s %s;", st.Name, st.Name)
+
+	e.writetln(e.indentLevel, "struct %s {", st.Name)
+	e.indentLevel++
+
+	// FIXME: order is important.
+	for name, t := range st.Fields {
+		typ := e.writeType(t)
+		e.writetln(e.indentLevel, "%s %s;", typ, name)
+	}
+	e.indentLevel--
+
+	e.writetln(e.indentLevel, "};")
+}
+
 func (e *emitter) emitFunc(fn *ir.Function) {
 	mangledFuncName := "krug_" + fn.Name
 
@@ -204,9 +263,18 @@ func codegen(mod *ir.Module) []byte {
 	e := &emitter{}
 	e.retarget(&e.decl)
 
-	headers := []string{"stdio.h", "stdbool.h", "stdint.h"}
+	headers := []string{
+		"stdio.h",
+		"stdbool.h",
+		"stdint.h",
+		"stdlib.h",
+	}
 	for _, h := range headers {
 		e.writeln(`#include <%s>`, h)
+	}
+
+	for _, st := range mod.Structures {
+		e.emitStructure(st)
 	}
 
 	e.retarget(&e.source)
@@ -217,7 +285,7 @@ func codegen(mod *ir.Module) []byte {
 
 	// for now we manually write the main func
 	e.retarget(&e.source)
-	e.writeln(`int main() { krug_main(); return 0; }`)
+	e.writeln(`int main() { return krug_main(); }`)
 
 	return []byte(e.decl + e.source)
 }

@@ -3,7 +3,6 @@ package front
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/krug-lang/krugc-api/api"
@@ -20,7 +19,6 @@ func Parse(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&stream)
 
-	fmt.Println("Parsing", len(stream.Tokens), "tokens")
 	parseTree := parseTokenStream(&stream)
 
 	buff := new(bytes.Buffer)
@@ -44,7 +42,6 @@ func Tokenize(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&sourceFile)
 
-	fmt.Println("Tokenizing ", sourceFile.Name)
 	stream := TokenStream{
 		tokenizeInput(sourceFile.Code),
 	}

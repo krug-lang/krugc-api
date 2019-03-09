@@ -425,7 +425,7 @@ func (p *parser) parseTraitDeclaration() *TraitDeclaration {
 
 func (p *parser) parseUnaryExpr() ExpressionNode {
 	// TODO other unary ops.
-	if !p.hasNext() || !p.next().Matches("-", "!", "+") {
+	if !p.hasNext() || !p.next().Matches("-", "!", "+", "@") {
 		return nil
 	}
 
@@ -435,7 +435,7 @@ func (p *parser) parseUnaryExpr() ExpressionNode {
 		panic("error, unary expr is null!")
 	}
 
-	return NewUnary(op.Value, right)
+	return NewUnaryExpression(op.Value, right)
 }
 
 func (p *parser) parseOperand() ExpressionNode {
@@ -461,14 +461,40 @@ func (p *parser) parseOperand() ExpressionNode {
 		return NewFloatingConstant(curr.Value)
 	case Identifier:
 		return NewVariableReference(curr.Value)
-	}
 
-	panic(fmt.Sprintf("err not sure what this is %s", p.next()))
+	case EndOfFile:
+		return nil
+
+	default:
+		panic(fmt.Sprintf("unhandled thingy %s", curr))
+	}
+}
+
+func (p *parser) parseBuiltin() ExpressionNode {
+	builtin := p.expectKind(Identifier)
+	p.expect("!")
+	typ := p.parseType()
+	if typ == nil {
+		panic("Expected type after builtin")
+	}
+	return NewBuiltinExpression(builtin.Value, typ)
 }
 
 func (p *parser) parsePrimaryExpr() ExpressionNode {
-	// if is unary op
-	// return parse unary.
+	if !p.hasNext() {
+		return nil
+	}
+
+	// TODO unary ops.
+	if p.next().Matches("!", "@", "+", "-") {
+		return p.parseUnaryExpr()
+	}
+
+	// builtins.
+	switch curr := p.next(); {
+	case curr.Matches("make", "sizeof", "len", "delete"):
+		return p.parseBuiltin()
+	}
 
 	left := p.parseOperand()
 	if left == nil {
@@ -563,10 +589,32 @@ func (p *parser) parsePrec(lastPrec int, left ExpressionNode) ExpressionNode {
 	return left
 }
 
+func (p *parser) parseAssign(left ExpressionNode) ExpressionNode {
+	if !p.hasNext() {
+		return nil
+	}
+
+	// TODO check if op is valid assign op
+
+	op := p.consume()
+
+	right := p.parseExpression()
+	if right == nil {
+		panic("assign expected expression after assignment operator")
+	}
+
+	return NewAssignmentStatement(left, op.Value, right)
+}
+
 func (p *parser) parseExpression() ExpressionNode {
 	left := p.parseLeft()
 	if left == nil {
 		return nil
+	}
+
+	// FIXME
+	if p.next().Matches("=", "+=", "-=", "*=", "/=") {
+		return p.parseAssign(left)
 	}
 
 	if _, ok := opPrec[p.next().Value]; ok {
@@ -581,7 +629,6 @@ func (p *parser) parseExpressionStatement() ExpressionNode {
 		return expr
 	}
 
-	fmt.Println(p.next())
 	return nil
 }
 

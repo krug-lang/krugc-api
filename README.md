@@ -9,6 +9,18 @@ the server: lex this file, parse these tokens, etc.
 There is latency involved here due to having to send packets back and
 forth, however the point here is not speed in compilation.
 
-The language compiles to C.
+Hopefully this means that tooling is quite easy to achieve. For example
+a text-editor could send over source files to lexically analyze via.
+the exposed API.
+
+## overview
+
+The Krug programming language:
+
+* compiles to C;
+* is garbage collected;
+* has type inference;
+* has no generics;
+* 
 
 ## license

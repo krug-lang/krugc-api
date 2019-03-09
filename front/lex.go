@@ -129,6 +129,69 @@ func lexSymbol(l *lexer) stateFn {
 	return lexStart
 }
 
+func lexMultiLine(l *lexer) stateFn {
+	nest := 0
+
+	for {
+		if l.peek() == '/' {
+			l.consume()
+			if l.peek() != '*' {
+				l.rewind()
+			} else {
+				l.consume()
+				nest++
+			}
+		} else if l.peek() == '*' {
+			l.consume()
+			if l.peek() != '/' {
+				l.rewind()
+			} else {
+				l.consume()
+				nest--
+			}
+		}
+
+		l.consume()
+		if nest == 0 {
+			break
+		}
+	}
+
+	l.ignore()
+	return lexStart
+}
+
+func lexSingleLine(l *lexer) stateFn {
+	l.accept("/")
+	l.accept("/")
+
+	for {
+		switch l.consume() {
+		default:
+			// consume
+		case '\n':
+			l.ignore()
+			return lexStart
+		}
+	}
+}
+
+func lexComment(l *lexer) stateFn {
+	l.accept("/")
+
+	switch l.peek() {
+	case '*':
+		l.rewind()
+		return lexMultiLine
+	case '/':
+		l.rewind()
+		return lexSingleLine
+	default:
+		l.rewind()
+		return lexSymbol
+	}
+}
+
 func lexStart(l *lexer) stateFn {
 	switch c := l.consume(); {
 	case c == eof:
@@ -140,6 +203,9 @@ func lexStart(l *lexer) stateFn {
 	case isAlphaNumeric(c):
 		l.rewind()
 		return lexIdentifier
+	case c == '/':
+		l.rewind()
+		return lexComment
 	case isSymbol(c):
 		l.rewind()
 		return lexSymbol
@@ -182,7 +248,7 @@ func init() {
 		'+', '-', '/', '*', '%', '=',
 		'(', ')', '{', '}', '[', ']', '<', '>',
 		'.', '$', '!', '?', '#', '/', ',', '|', '&',
-		'_', '~', ';', ':',
+		'_', '~', ';', ':', '@',
 	)
 }
 

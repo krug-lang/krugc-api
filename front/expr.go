@@ -11,11 +11,29 @@ func init() {
 	gob.Register(&BinaryExpression{})
 	gob.Register(&Grouping{})
 	gob.Register(&VariableNode{})
+	gob.Register(&BuiltinExpression{})
 }
 
 type ExpressionNode interface {
 	Print() string
 }
+
+// BUILTIN
+
+type BuiltinExpression struct {
+	Name string
+	Type TypeNode
+}
+
+func (b *BuiltinExpression) Print() string {
+	return fmt.Sprintf("%s!%s", b.Name, b.Type)
+}
+
+func NewBuiltinExpression(name string, typ TypeNode) *BuiltinExpression {
+	return &BuiltinExpression{name, typ}
+}
+
+// VARIABLE
 
 type VariableNode struct {
 	Name string
@@ -28,6 +46,8 @@ func (v *VariableNode) Print() string {
 func NewVariable(name string) *VariableNode {
 	return &VariableNode{name}
 }
+
+// LITERAL
 
 // string, number
 type LiteralExpression struct {
@@ -42,6 +62,8 @@ func NewLiteral(value string) *LiteralExpression {
 	return &LiteralExpression{value}
 }
 
+// UNARY
+
 type UnaryExpression struct {
 	Operator string
 	Value    ExpressionNode
@@ -51,9 +73,11 @@ func (u *UnaryExpression) Print() string {
 	return fmt.Sprintf("(u %s%s)", u.Operator, u.Value.Print())
 }
 
-func NewUnary(op string, value ExpressionNode) *UnaryExpression {
+func NewUnaryExpression(op string, value ExpressionNode) *UnaryExpression {
 	return &UnaryExpression{op, value}
 }
+
+// BINARY
 
 type BinaryExpression struct {
 	LHand    ExpressionNode
@@ -68,6 +92,8 @@ func (b *BinaryExpression) Print() string {
 func NewBinary(lh ExpressionNode, op string, rh ExpressionNode) *BinaryExpression {
 	return &BinaryExpression{lh, op, rh}
 }
+
+// GROUPING
 
 type Grouping struct {
 	Value ExpressionNode

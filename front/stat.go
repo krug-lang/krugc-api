@@ -9,6 +9,7 @@ func init() {
 	gob.Register(&LetStatement{})
 	gob.Register(&MutableStatement{})
 	gob.Register(&ReturnStatement{})
+	gob.Register(&AssignStatement{})
 }
 
 type StatementNode interface {
@@ -55,4 +56,18 @@ func NewMutableStatement(name string, typ TypeNode, val ExpressionNode) *Mutable
 
 func (m *MutableStatement) Print() string {
 	return fmt.Sprintf("mut %s = ", m.Name)
+}
+
+type AssignStatement struct {
+	LHand ExpressionNode
+	Op    string
+	RHand ExpressionNode
+}
+
+func (a *AssignStatement) Print() string {
+	return fmt.Sprintf("%s %s %s", a.LHand.Print(), a.Op, a.RHand.Print())
+}
+
+func NewAssignmentStatement(lh ExpressionNode, op string, rh ExpressionNode) *AssignStatement {
+	return &AssignStatement{lh, op, rh}
 }
