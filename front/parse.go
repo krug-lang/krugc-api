@@ -606,10 +606,35 @@ func (p *parser) parseAssign(left ExpressionNode) ExpressionNode {
 	return NewAssignmentStatement(left, op.Value, right)
 }
 
+func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
+	list := []ExpressionNode{}
+
+	list = append(list, left)
+
+	for p.hasNext() && p.next().Matches(".") {
+		p.expect(".")
+		val := p.parseExpression()
+		if val == nil {
+			panic("oh dear")
+		}
+		list = append(list, val)
+	}
+
+	var res string
+	for _, i := range list {
+		res += i.Print() + " "
+	}
+	panic(fmt.Sprintf("dot list %s", res))
+}
+
 func (p *parser) parseExpression() ExpressionNode {
 	left := p.parseLeft()
 	if left == nil {
 		return nil
+	}
+
+	if p.next().Matches(".") {
+		return p.parseDotList(left)
 	}
 
 	// FIXME

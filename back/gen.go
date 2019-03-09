@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/krug-lang/ir"
+	"github.com/krug-lang/krugc-api/ir"
 )
 
 type emitter struct {
@@ -103,6 +103,11 @@ func (e *emitter) buildExpr(l ir.Value) string {
 		value := e.buildExpr(val.Val)
 		return fmt.Sprintf("(*%s)", value)
 
+	case *ir.Assign:
+		lh := e.buildExpr(val.LHand)
+		rh := e.buildExpr(val.RHand)
+		return fmt.Sprintf("%s %s %s", lh, val.Op, rh)
+
 	default:
 		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(val)))
 	}
@@ -134,6 +139,16 @@ func (e *emitter) buildRet(r *ir.Return) {
 func (e *emitter) buildLoop(l *ir.Loop) {
 	e.writetln(e.indentLevel, "for(;;)")
 	e.buildBlock(l.Body)
+}
+
+func (e *emitter) buildWhileLoop(w *ir.WhileLoop) {
+	cond := e.buildExpr(w.Cond)
+	var post string
+	if w.Post != nil {
+		post = e.buildExpr(w.Post)
+	}
+	e.writetln(e.indentLevel, "for(;%s;%s)", cond, post)
+	e.buildBlock(w.Body)
 }
 
 func (e *emitter) buildIfStat(iff *ir.IfStatement) {
@@ -193,6 +208,10 @@ func (e *emitter) buildInstr(i ir.Instruction) {
 
 	case *ir.Loop:
 		e.buildLoop(instr)
+		return
+
+	case *ir.WhileLoop:
+		e.buildWhileLoop(instr)
 		return
 
 	default:

@@ -114,6 +114,12 @@ var doubleSym = map[string]bool{
 	"||": true,
 	"<=": true,
 	">=": true,
+
+	"+=": true,
+	"-=": true,
+	"*=": true,
+	"/=": true,
+	"%=": true,
 }
 
 func lexSymbol(l *lexer) stateFn {

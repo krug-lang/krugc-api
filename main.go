@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/ir"
 	"github.com/krug-lang/krugc-api/back"
 	"github.com/krug-lang/krugc-api/front"
+	"github.com/krug-lang/krugc-api/ir"
 )
 
 func main() {
@@ -30,4 +30,8 @@ func main() {
 	}
 
 	router.Run("localhost:8080")
+}
+
+func Now() {
+	main()
 }
