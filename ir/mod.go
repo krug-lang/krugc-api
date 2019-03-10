@@ -3,41 +3,16 @@ package ir
 import "encoding/gob"
 
 func init() {
-	gob.Register(&Structure{})
-	gob.Register(&Function{})
 	gob.Register(&Module{})
 }
 
-type Structure struct {
-	Name    string
-	Fields  map[string]Type
-	Methods map[string]Function
-}
-
-func NewStructure(name string, fields map[string]Type) *Structure {
-	return &Structure{name, fields, map[string]Function{}}
-}
-
-func (s *Structure) RegisterMethod(f Function) {
-	s.Methods[f.Name] = f
-}
-
-type Function struct {
-	Name       string
-	Param      map[string]Type
-	ReturnType Type
-	Body       *Block
-}
-
-func NewFunction(name string, params map[string]Type, ret Type) *Function {
-	return &Function{name, params, ret, NewBlock()}
-}
+// MODULE
 
 type Module struct {
-	Name string
-
+	Name       string
 	Structures map[string]*Structure
 	Functions  map[string]*Function
+	Impls      map[string]*Impl
 }
 
 func NewModule(name string) *Module {
@@ -45,12 +20,29 @@ func NewModule(name string) *Module {
 		name,
 		map[string]*Structure{},
 		map[string]*Function{},
+		map[string]*Impl{},
 	}
 }
 
 func (m *Module) GetStructure(name string) (*Structure, bool) {
 	s, ok := m.Structures[name]
 	return s, ok
+}
+
+func (m *Module) GetImpl(name string) (*Impl, bool) {
+	s, ok := m.Impls[name]
+	return s, ok
+}
+
+// RegisterImpl registers the given impl with the module.
+// returns TRUE if an impl has already been registered with
+// the same name and FALSE if not.
+func (m *Module) RegisterImpl(i *Impl) (failed bool) {
+	if _, ok := m.Impls[i.Name]; ok {
+		return true
+	}
+	m.Impls[i.Name] = i
+	return false
 }
 
 func (m *Module) RegisterStructure(s *Structure) {

@@ -11,6 +11,7 @@ func init() {
 	gob.Register(&IntegerConstant{})
 	gob.Register(&FloatingConstant{})
 	gob.Register(&VariableReference{})
+	gob.Register(&StringConstant{})
 }
 
 type VariableReference struct {
@@ -26,6 +27,8 @@ func NewVariableReference(name string) *VariableReference {
 }
 
 type ConstantNode interface{}
+
+// INTEGER CONST
 
 type IntegerConstant struct {
 	Value *big.Int
@@ -44,6 +47,8 @@ func NewIntegerConstant(val string) *IntegerConstant {
 	return &IntegerConstant{value}
 }
 
+// FLOAT CONST
+
 type FloatingConstant struct {
 	Value float64
 }
@@ -58,4 +63,18 @@ func NewFloatingConstant(val string) *FloatingConstant {
 		panic(err)
 	}
 	return &FloatingConstant{value}
+}
+
+// STRING CONST
+
+type StringConstant struct {
+	Value string
+}
+
+func (s *StringConstant) Print() string {
+	return fmt.Sprintf(`"%s"`, s.Value)
+}
+
+func NewStringConstant(val string) *StringConstant {
+	return &StringConstant{val}
 }

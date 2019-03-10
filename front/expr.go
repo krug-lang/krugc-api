@@ -12,6 +12,8 @@ func init() {
 	gob.Register(&Grouping{})
 	gob.Register(&VariableNode{})
 	gob.Register(&BuiltinExpression{})
+	gob.Register(&PathExpression{})
+	gob.Register(&CallExpression{})
 }
 
 type ExpressionNode interface {
@@ -105,4 +107,41 @@ func (g *Grouping) Print() string {
 
 func NewGrouping(val ExpressionNode) *Grouping {
 	return &Grouping{val}
+}
+
+// CALL EXPR
+
+type CallExpression struct {
+	Left   ExpressionNode
+	Params []ExpressionNode
+}
+
+func (c *CallExpression) Print() string {
+	var paramList string
+	for _, p := range c.Params {
+		paramList += p.Print() + ","
+	}
+	return fmt.Sprintf("%s(%s)", c.Left.Print(), paramList)
+}
+
+func NewCallExpression(left ExpressionNode, params []ExpressionNode) *CallExpression {
+	return &CallExpression{left, params}
+}
+
+// PathExpression
+
+type PathExpression struct {
+	Values []ExpressionNode
+}
+
+func (p *PathExpression) Print() string {
+	var res string
+	for _, i := range p.Values {
+		res += i.Print() + " "
+	}
+	return res
+}
+
+func NewPathExpression(values []ExpressionNode) *PathExpression {
+	return &PathExpression{values}
 }

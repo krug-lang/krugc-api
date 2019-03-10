@@ -4,52 +4,28 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/krug-lang/krugc-api/api"
 	"github.com/krug-lang/krugc-api/front"
 )
 
-var typeMap = map[string]Type{
-	"u8":  Uint8,
-	"u16": Uint16,
-	"u32": Uint32,
-	"u64": Uint64,
-
-	"s8":  Int8,
-	"s16": Int16,
-	"s32": Int32,
-	"s64": Int64,
-
-	"void": Void,
-	"bool": Bool,
-
-	"f32": Float32,
-	"f64": Float64,
-
-	"rune": Int32,
-
-	"int":  Int32,
-	"uint": Uint32,
+type builder struct {
+	mod    *Module
+	errors []api.CompilerError
 }
 
-type builder struct {
-	mod *Module
+func (b *builder) error(err api.CompilerError) {
+	b.errors = append(b.errors, err)
 }
 
 func newBuilder(mod *Module) *builder {
-	return &builder{mod}
+	return &builder{mod, []api.CompilerError{}}
 }
 
 func (b *builder) buildUnresolvedType(u *front.UnresolvedType) Type {
-	if t, ok := typeMap[u.Name]; ok {
+	if t, ok := PrimitiveType[u.Name]; ok {
 		return t
 	}
-
-	if _, ok := b.mod.GetStructure(u.Name); ok {
-		// FIXME: should we store the type in this reference?
-		// probably should.
-		return NewReferenceType(u.Name)
-	}
-
-	panic(fmt.Sprintf("not sure where the type %s comes from", u.Name))
+	return NewReferenceType(u.Name)
 }
 
 func (b *builder) buildPointerType(p *front.PointerType) Type {
@@ -70,8 +46,10 @@ func (b *builder) buildType(n front.TypeNode) Type {
 	}
 }
 
-func (b *builder) buildStructure(node *front.StructureDeclaration) *Structure {
-	fields := map[string]Type{}
+// here we build a structure, give it an EMPTY type dictionary
+// of the fields.
+func (b *builder) declareStructure(node *front.StructureDeclaration) *Structure {
+	fields := newTypeDict()
 	return NewStructure(node.Name, fields)
 }
 
@@ -95,10 +73,31 @@ func (b *builder) buildBuiltin(e *front.BuiltinExpression) Value {
 	return NewBuiltin(e.Name, b.buildType(e.Type))
 }
 
+func (b *builder) buildCallExpression(e *front.CallExpression) Value {
+	left := b.buildExpr(e.Left)
+	var params []Value
+	for _, p := range e.Params {
+		expr := b.buildExpr(p)
+		params = append(params, expr)
+	}
+	return NewCall(left, params)
+}
+
+func (b *builder) buildPathExpression(p *front.PathExpression) Value {
+	var values []Value
+	for _, e := range p.Values {
+		values = append(values, b.buildExpr(e))
+	}
+	return NewPath(values)
+}
+
 func (b *builder) buildExpr(e front.ExpressionNode) Value {
 	switch expr := e.(type) {
 	case *front.IntegerConstant:
 		return NewIntegerValue(expr.Value)
+
+	case *front.StringConstant:
+		return NewStringValue(expr.Value)
 
 	case *front.BinaryExpression:
 		return b.buildBinaryExpr(expr)
@@ -117,6 +116,12 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 
 	case *front.AssignStatement:
 		return b.buildAssignStat(expr)
+
+	case *front.CallExpression:
+		return b.buildCallExpression(expr)
+
+	case *front.PathExpression:
+		return b.buildPathExpression(expr)
 
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", reflect.TypeOf(expr)))
@@ -216,15 +221,17 @@ func (b *builder) buildStat(s front.StatementNode) Instruction {
 		return b.buildIfStat(stat)
 	case *front.AssignStatement:
 		return b.buildAssignStat(stat)
+	case front.ExpressionNode:
+		return b.buildExpr(stat)
 	default:
 		panic(fmt.Sprintf("unimplemented stat! %s", reflect.TypeOf(stat)))
 	}
 }
 
 func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
-	params := map[string]Type{}
-	for n, p := range node.Arguments {
-		params[n] = b.buildType(p)
+	params := newTypeDict()
+	for _, p := range node.Arguments {
+		params.Set(p.Name, b.buildType(p.Type))
 	}
 
 	var ret Type = Void
@@ -239,13 +246,25 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 
 func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	structureNodes := []*front.StructureDeclaration{}
+	implNodes := []*front.ImplDeclaration{}
 
-	// declare all structures
+	// TODO it might be faster to do one loop and append
+	// all the types into arrays then process the arrays.
+
+	// declare all structures, impls, exist.
 	for _, n := range tree.Nodes {
 		switch node := n.(type) {
 		case *front.StructureDeclaration:
 			structureNodes = append(structureNodes, node)
-			m.RegisterStructure(b.buildStructure(node))
+			m.RegisterStructure(b.declareStructure(node))
+		case *front.ImplDeclaration:
+			implNodes = append(implNodes, node)
+			if m.RegisterImpl(NewImpl(node.Name)) {
+				b.error(api.CompilerError{
+					Title: fmt.Sprintf("Duplicate implementation for '%s'", node.Name),
+					Desc:  "...",
+				})
+			}
 		}
 	}
 
@@ -254,11 +273,27 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	for _, sn := range structureNodes {
 		structure, ok := m.GetStructure(sn.Name)
 		if !ok {
-			panic("couldn't find structure!")
+			panic(fmt.Sprintf("couldn't find structure %s", sn.Name))
 		}
 
-		for n, tn := range sn.Fields {
-			structure.Fields[n] = b.buildType(tn)
+		for _, tn := range sn.Fields {
+			typ := b.buildType(tn.Type)
+			if typ == nil {
+				panic("couldn't build type when setting structure field")
+			}
+			structure.Fields.Set(tn.Name, typ)
+		}
+	}
+
+	for _, in := range implNodes {
+		impl, ok := m.GetImpl(in.Name)
+		if !ok {
+			panic(fmt.Sprintf("couldn't find impl %s", in.Name))
+		}
+
+		for _, fn := range in.Functions {
+			builtFunc := b.buildFunc(fn)
+			impl.RegisterMethod(builtFunc)
 		}
 	}
 
@@ -275,12 +310,12 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	}
 }
 
-func build(trees []front.ParseTree) *Module {
+func build(trees []front.ParseTree) (*Module, []api.CompilerError) {
 	module := NewModule("main")
 
 	b := newBuilder(module)
 	for _, tree := range trees {
 		b.buildTree(module, tree)
 	}
-	return module
+	return module, b.errors
 }

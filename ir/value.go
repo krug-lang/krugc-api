@@ -7,11 +7,14 @@ import (
 
 func init() {
 	gob.Register(&IntegerValue{})
+	gob.Register(&StringValue{})
 	gob.Register(&BinaryExpression{})
 	gob.Register(&Identifier{})
 	gob.Register(&Grouping{})
 	gob.Register(&Builtin{})
 	gob.Register(&UnaryExpression{})
+	gob.Register(&Call{})
+	gob.Register(&Path{})
 }
 
 type Value interface{}
@@ -59,6 +62,16 @@ func NewIntegerValue(val *big.Int) *IntegerValue {
 	return &IntegerValue{val}
 }
 
+// STRING VALUE
+
+type StringValue struct {
+	Value string
+}
+
+func NewStringValue(val string) *StringValue {
+	return &StringValue{val}
+}
+
 // IDENTIFIER
 
 type Identifier struct {
@@ -78,4 +91,25 @@ type Builtin struct {
 
 func NewBuiltin(name string, typ Type) *Builtin {
 	return &Builtin{name, typ}
+}
+
+// CALL
+
+type Call struct {
+	Left   Value
+	Params []Value
+}
+
+func NewCall(left Value, params []Value) *Call {
+	return &Call{left, params}
+}
+
+// PATH
+
+type Path struct {
+	Values []Value
+}
+
+func NewPath(values []Value) *Path {
+	return &Path{values}
 }

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/krug-lang/krugc-api/api"
 	"github.com/krug-lang/krugc-api/ir"
 )
 
@@ -23,10 +24,14 @@ func (e *emitter) writeln(f string, d ...interface{}) {
 	e.write(f+"\n", d...)
 }
 
-func (e *emitter) writetln(num int, f string, d ...interface{}) {
+func (e *emitter) writet(num int, f string, d ...interface{}) {
 	const TabSize = 4
 	tabs := strings.Repeat(" ", TabSize*num)
-	e.write(tabs+f+"\n", d...)
+	e.write(tabs+f, d...)
+}
+
+func (e *emitter) writetln(num int, f string, d ...interface{}) {
+	e.writet(num, f+"\n", d...)
 }
 
 func (e *emitter) write(f string, d ...interface{}) {
@@ -48,6 +53,9 @@ func (e *emitter) writeType(typ ir.Type) string {
 			return "float"
 		}
 		return "double"
+
+	case *ir.VoidType:
+		return "void"
 
 	case *ir.ReferenceType:
 		// FIXME
@@ -84,6 +92,9 @@ func (e *emitter) buildExpr(l ir.Value) string {
 	case *ir.IntegerValue:
 		return val.RawValue.String()
 
+	case *ir.StringValue:
+		return val.Value
+
 	case *ir.BinaryExpression:
 		lh := e.buildExpr(val.LHand)
 		rh := e.buildExpr(val.RHand)
@@ -108,6 +119,17 @@ func (e *emitter) buildExpr(l ir.Value) string {
 		rh := e.buildExpr(val.RHand)
 		return fmt.Sprintf("%s %s %s", lh, val.Op, rh)
 
+	case *ir.Call:
+		lh := e.buildExpr(val.Left)
+		var argsList string
+		for idx, arg := range val.Params {
+			if idx != 0 {
+				argsList += ","
+			}
+			argsList += e.buildExpr(arg)
+		}
+		return fmt.Sprintf("%s(%s)", lh, argsList)
+
 	default:
 		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(val)))
 	}
@@ -125,7 +147,7 @@ func (e *emitter) buildLocal(l *ir.Local) {
 		valueCode = fmt.Sprintf(" = %s;", e.buildExpr(l.Val))
 	}
 
-	e.writetln(e.indentLevel, "/*local*/%s%s %s%s", modifier, aType, l.Name, valueCode)
+	e.writetln(e.indentLevel, "%s%s %s%s", modifier, aType, l.Name, valueCode)
 }
 
 func (e *emitter) buildRet(r *ir.Return) {
@@ -172,6 +194,20 @@ func (e *emitter) buildAssign(a *ir.Assign) {
 	e.writetln(e.indentLevel, "%s %s %s;", lh, op, rh)
 }
 
+func (e *emitter) buildCall(c *ir.Call) {
+	var argList string
+	for idx, p := range c.Params {
+		if idx != 0 {
+			argList += ","
+		}
+		argList += e.buildExpr(p)
+	}
+	left := e.buildExpr(c.Left)
+
+	// FIXME hard coded mangle thing
+	e.writet(e.indentLevel, "%s(%s)", left, argList)
+}
+
 func (e *emitter) buildInstr(i ir.Instruction) {
 	switch instr := i.(type) {
 
@@ -214,6 +250,11 @@ func (e *emitter) buildInstr(i ir.Instruction) {
 		e.buildWhileLoop(instr)
 		return
 
+	case *ir.Call:
+		e.buildCall(instr)
+		e.write(";\n")
+		return
+
 	default:
 		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(instr)))
 	}
@@ -239,8 +280,9 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 	e.writetln(e.indentLevel, "struct %s {", st.Name)
 	e.indentLevel++
 
-	// FIXME: order is important.
-	for name, t := range st.Fields {
+	for _, name := range st.Fields.Order {
+		t := st.Fields.Get(name)
+
 		typ := e.writeType(t)
 		e.writetln(e.indentLevel, "%s %s;", typ, name)
 	}
@@ -250,12 +292,18 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 }
 
 func (e *emitter) emitFunc(fn *ir.Function) {
-	mangledFuncName := "krug_" + fn.Name
+	mangledFuncName := fn.Name
+	if strings.Compare(fn.Name, "main") == 0 {
+		mangledFuncName = "krug_" + fn.Name
+	}
 
 	writeArgList := func(fn *ir.Function) string {
 		var argList string
+
 		idx := 0
-		for name, t := range fn.Param {
+		for _, name := range fn.Param.Order {
+			t := fn.Param.Get(name)
+
 			if idx != 0 {
 				argList += ", "
 			}
@@ -278,7 +326,7 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 	e.buildBlock(fn.Body)
 }
 
-func codegen(mod *ir.Module) []byte {
+func codegen(mod *ir.Module) ([]byte, []api.CompilerError) {
 	e := &emitter{}
 	e.retarget(&e.decl)
 
@@ -306,5 +354,5 @@ func codegen(mod *ir.Module) []byte {
 	e.retarget(&e.source)
 	e.writeln(`int main() { return krug_main(); }`)
 
-	return []byte(e.decl + e.source)
+	return []byte(e.decl + e.source), []api.CompilerError{}
 }

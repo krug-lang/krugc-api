@@ -3,6 +3,8 @@ package front
 import (
 	"fmt"
 	"strings"
+
+	"github.com/krug-lang/krugc-api/api"
 )
 
 type parser struct {
@@ -47,7 +49,7 @@ func (p *parser) hasNext() bool {
 }
 
 func (p *parser) parsePointerType() *PointerType {
-	p.expect("*")
+	p.expect("^")
 	base := p.parseType()
 	if base == nil {
 		panic("no type after ptr")
@@ -75,7 +77,7 @@ func (p *parser) parseUnresolvedType() *UnresolvedType {
 
 func (p *parser) parseType() TypeNode {
 	switch curr := p.next(); {
-	case curr.Matches("*"):
+	case curr.Matches("^"):
 		return p.parsePointerType()
 	case curr.Matches("["):
 		return p.parseArrayType()
@@ -90,7 +92,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 	p.expect("struct")
 	name := p.consume().Value
 
-	fields := map[string]TypeNode{}
+	fields := []*NamedType{}
 
 	p.expect("{")
 	for p.hasNext() {
@@ -104,7 +106,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 		if typ == nil {
 			panic("no type!")
 		}
-		fields[name.Value] = typ
+		fields = append(fields, &NamedType{name.Value, typ})
 
 		// trailing commas are enforced.
 		p.expect(",")
@@ -118,7 +120,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 	p.expect("func")
 	name := p.expectKind(Identifier).Value
 
-	args := map[string]TypeNode{}
+	args := []*NamedType{}
 
 	p.expect("(")
 	for idx := 0; p.hasNext(); idx++ {
@@ -137,7 +139,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 			panic("expected type in func proto")
 		}
 
-		args[name.Value] = typ
+		args = append(args, &NamedType{name.Value, typ})
 	}
 	p.expect(")")
 
@@ -390,7 +392,7 @@ func (p *parser) parseImplDeclaration() *ImplDeclaration {
 	}
 	p.expect("}")
 
-	return NewImplDeclaration(name)
+	return NewImplDeclaration(name, functions)
 }
 
 func (p *parser) parseTraitDeclaration() *TraitDeclaration {
@@ -462,11 +464,14 @@ func (p *parser) parseOperand() ExpressionNode {
 	case Identifier:
 		return NewVariableReference(curr.Value)
 
+	case String:
+		return NewStringConstant(curr.Value)
+
 	case EndOfFile:
 		return nil
 
 	default:
-		panic(fmt.Sprintf("unhandled thingy %s", curr))
+		panic(fmt.Sprintf("unhandled operand %s", curr))
 	}
 }
 
@@ -478,6 +483,26 @@ func (p *parser) parseBuiltin() ExpressionNode {
 		panic("Expected type after builtin")
 	}
 	return NewBuiltinExpression(builtin.Value, typ)
+}
+
+func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
+	var params []ExpressionNode
+
+	p.expect("(")
+	for idx := 0; p.hasNext() && !p.next().Matches(")"); idx++ {
+		if idx != 0 {
+			p.expect(",")
+		}
+
+		val := p.parseExpression()
+		if val == nil {
+			panic("expected parameter in call func")
+		}
+		params = append(params, val)
+	}
+	p.expect(")")
+
+	return NewCallExpression(left, params)
 }
 
 func (p *parser) parsePrimaryExpr() ExpressionNode {
@@ -508,7 +533,7 @@ func (p *parser) parsePrimaryExpr() ExpressionNode {
 		return nil
 	case curr.Matches("("):
 		// parseCall
-		return nil
+		return p.parseCall(left)
 	}
 
 	return left
@@ -620,11 +645,7 @@ func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
 		list = append(list, val)
 	}
 
-	var res string
-	for _, i := range list {
-		res += i.Print() + " "
-	}
-	panic(fmt.Sprintf("dot list %s", res))
+	return NewPathExpression(list)
 }
 
 func (p *parser) parseExpression() ExpressionNode {
@@ -672,7 +693,7 @@ func (p *parser) parseNode() ParseTreeNode {
 	panic(fmt.Sprintf("unhandled %s", p.next()))
 }
 
-func parseTokenStream(stream *TokenStream) ParseTree {
+func parseTokenStream(stream *TokenStream) (ParseTree, []api.CompilerError) {
 	p := &parser{stream.Tokens, 0}
 	nodes := []ParseTreeNode{}
 	for p.hasNext() {
@@ -680,5 +701,7 @@ func parseTokenStream(stream *TokenStream) ParseTree {
 			nodes = append(nodes, node)
 		}
 	}
-	return ParseTree{nodes}
+
+	// FIXME
+	return ParseTree{nodes}, []api.CompilerError{}
 }

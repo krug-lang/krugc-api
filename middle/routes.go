@@ -1,4 +1,4 @@
-package back
+package middle
 
 import (
 	"bytes"
@@ -9,7 +9,18 @@ import (
 	"github.com/krug-lang/krugc-api/ir"
 )
 
-func Gen(c *gin.Context) {
+/*
+	middle end:
+
+	declare types exist (ir builder does this)
+
+	check all references to types are OK
+		check structure bodies.
+		check function bodies.
+		check function params
+*/
+
+func TypeResolve(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
@@ -20,12 +31,10 @@ func Gen(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	// for now we just return the
-	// bytes for one big old c file.
-	monoFile, errors := codegen(irMod)
+	errors := typeResolve(irMod)
 
 	resp := api.KrugResponse{
-		Data:   monoFile,
+		Data:   []byte{},
 		Errors: errors,
 	}
 	c.JSON(200, &resp)

@@ -19,14 +19,15 @@ func Parse(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&stream)
 
-	parseTree := parseTokenStream(&stream)
+	parseTree, errors := parseTokenStream(&stream)
 
 	buff := new(bytes.Buffer)
 	enc := gob.NewEncoder(buff)
 	enc.Encode(&parseTree)
 
 	resp := api.KrugResponse{
-		Data: buff.Bytes(),
+		Data:   buff.Bytes(),
+		Errors: errors,
 	}
 	c.JSON(200, &resp)
 }
@@ -42,16 +43,17 @@ func Tokenize(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&sourceFile)
 
-	stream := TokenStream{
-		tokenizeInput(sourceFile.Code),
-	}
+	tokens, errors := tokenizeInput(sourceFile.Code)
+
+	stream := TokenStream{tokens}
 
 	buff := new(bytes.Buffer)
 	enc := gob.NewEncoder(buff)
 	enc.Encode(&stream)
 
 	resp := api.KrugResponse{
-		Data: buff.Bytes(),
+		Data:   buff.Bytes(),
+		Errors: errors,
 	}
 	c.JSON(200, &resp)
 }

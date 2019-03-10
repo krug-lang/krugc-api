@@ -14,6 +14,11 @@ func init() {
 	gob.Register(&FunctionPrototypeDeclaration{})
 }
 
+type NamedType struct {
+	Name string
+	Type TypeNode
+}
+
 //
 // STRUCT
 //
@@ -21,14 +26,14 @@ func init() {
 // "struct" iden { ... }
 type StructureDeclaration struct {
 	Name   string
-	Fields map[string]TypeNode
+	Fields []*NamedType
 }
 
 func (s *StructureDeclaration) Print() string {
 	return fmt.Sprintf("(struct %s, fields %s)", s.Name, s.Fields)
 }
 
-func NewStructureDeclaration(name string, fields map[string]TypeNode) *StructureDeclaration {
+func NewStructureDeclaration(name string, fields []*NamedType) *StructureDeclaration {
 	return &StructureDeclaration{
 		Name:   name,
 		Fields: fields,
@@ -69,16 +74,17 @@ func (t *TraitDeclaration) NodeName() string {
 
 // impl Name
 type ImplDeclaration struct {
-	Name string
+	Name      string
+	Functions []*FunctionDeclaration
 }
 
 func (i *ImplDeclaration) Print() string {
 	return fmt.Sprintf("(impl %s)", i.Name)
 }
 
-func NewImplDeclaration(name string) *ImplDeclaration {
+func NewImplDeclaration(name string, funcs []*FunctionDeclaration) *ImplDeclaration {
 	return &ImplDeclaration{
-		name,
+		name, funcs,
 	}
 }
 
@@ -93,7 +99,7 @@ func (i *ImplDeclaration) NodeName() string {
 // "func" iden "(" args ")"
 type FunctionPrototypeDeclaration struct {
 	Name      string
-	Arguments map[string]TypeNode
+	Arguments []*NamedType
 
 	// TODO should this be set to anything by
 	// default, e.g. we can inject a "void"
@@ -109,7 +115,7 @@ func (f *FunctionPrototypeDeclaration) Print() string {
 	return fmt.Sprintf("(func %s, args %s)", f.Name, f.Arguments)
 }
 
-func NewFunctionPrototypeDeclaration(name string, args map[string]TypeNode) *FunctionPrototypeDeclaration {
+func NewFunctionPrototypeDeclaration(name string, args []*NamedType) *FunctionPrototypeDeclaration {
 	return &FunctionPrototypeDeclaration{
 		Name:      name,
 		Arguments: args,

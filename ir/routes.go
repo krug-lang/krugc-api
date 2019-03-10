@@ -22,14 +22,15 @@ func Build(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&trees)
 
-	irModule := build(trees)
+	irModule, errors := build(trees)
 
 	buff := new(bytes.Buffer)
 	enc := gob.NewEncoder(buff)
 	enc.Encode(&irModule)
 
 	resp := api.KrugResponse{
-		Data: buff.Bytes(),
+		Data:   buff.Bytes(),
+		Errors: errors,
 	}
 	c.JSON(200, &resp)
 }

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/krug-lang/krugc-api/api"
 )
 
 const eof = -1
@@ -230,14 +232,14 @@ func lexStart(l *lexer) stateFn {
 	}
 }
 
-func tokenizeInput(input string) []Token {
+func tokenizeInput(input string) ([]Token, []api.CompilerError) {
 	l := &lexer{
 		[]byte(input), 0, 0, 0, []Token{},
 	}
 	for s := lexStart; s != nil; {
 		s = s(l)
 	}
-	return l.stream
+	return l.stream, []api.CompilerError{}
 }
 
 var symbols = map[rune]bool{}
@@ -254,7 +256,7 @@ func init() {
 		'+', '-', '/', '*', '%', '=',
 		'(', ')', '{', '}', '[', ']', '<', '>',
 		'.', '$', '!', '?', '#', '/', ',', '|', '&',
-		'_', '~', ';', ':', '@',
+		'_', '~', ';', ':', '@', '^',
 	)
 }
 
