@@ -1,7 +1,9 @@
 package main
 
 import (
+	"net/http"
 	"os"
+	"time"
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
@@ -48,5 +50,12 @@ func main() {
 		b.POST("/gen", back.Gen)
 	}
 
-	router.Run("localhost:8001")
+	s := &http.Server{
+		Addr:           "localhost:8001",
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	s.ListenAndServe()
 }
