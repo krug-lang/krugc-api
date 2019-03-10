@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+
+	raven "github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
 	"github.com/krug-lang/krugc-api/back"
 	"github.com/krug-lang/krugc-api/front"
@@ -9,6 +12,8 @@ import (
 )
 
 func main() {
+	raven.SetDSN(os.Getenv("SENTRY_KEY"))
+
 	router := gin.Default()
 
 	// compiler frontend, handles lexing/parsing
