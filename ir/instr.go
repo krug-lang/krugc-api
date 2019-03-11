@@ -7,6 +7,8 @@ func init() {
 	gob.Register(&Local{})
 	gob.Register(&Alloca{})
 	gob.Register(&Return{})
+	gob.Register(&Break{})
+	gob.Register(&Next{})
 	gob.Register(&Loop{})
 	gob.Register(&WhileLoop{})
 	gob.Register(&IfStatement{})
@@ -80,6 +82,16 @@ func (a *Alloca) SetValue(v Value) {
 func NewAlloca(name string, typ Type) *Alloca {
 	return &Alloca{name, typ, nil}
 }
+
+// NEXT, BREAK
+
+type Next struct{}
+
+func NewNext() *Next { return &Next{} }
+
+type Break struct{}
+
+func NewBreak() *Break { return &Break{} }
 
 // RETURN
 

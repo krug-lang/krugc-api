@@ -80,10 +80,23 @@ func (t *typeResolvePass) resolveInstr(i ir.Instruction) {
 	case *ir.Loop:
 		t.resolveBlock(instr.Body)
 
+	case *ir.IfStatement:
+		t.resolveBlock(instr.True)
+		for _, e := range instr.ElseIf {
+			t.resolveBlock(e.Body)
+		}
+		if instr.Else != nil {
+			t.resolveBlock(instr.Else)
+		}
+
 	// nops
 	case *ir.Path:
 		return
 	case *ir.Return:
+		return
+	case *ir.Break:
+		return
+	case *ir.Next:
 		return
 	case *ir.Call:
 		return

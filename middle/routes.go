@@ -39,3 +39,43 @@ func TypeResolve(c *gin.Context) {
 	}
 	c.JSON(200, &resp)
 }
+
+func BuildScope(c *gin.Context) {
+	var krugReq api.KrugRequest
+	if err := c.BindJSON(&krugReq); err != nil {
+		panic(err)
+	}
+
+	var irMod *ir.Module
+	pCache := bytes.NewBuffer(krugReq.Data)
+	decCache := gob.NewDecoder(pCache)
+	decCache.Decode(&irMod)
+
+	scope, errs := buildScope(irMod)
+
+	resp := api.KrugResponse{
+		Data:   []byte{},
+		Errors: errs,
+	}
+	c.JSON(200, &resp)
+}
+
+func SymbolResolve(c *gin.Context) {
+	var krugReq api.KrugRequest
+	if err := c.BindJSON(&krugReq); err != nil {
+		panic(err)
+	}
+
+	var irMod *ir.Module
+	pCache := bytes.NewBuffer(krugReq.Data)
+	decCache := gob.NewDecoder(pCache)
+	decCache.Decode(&irMod)
+
+	//TODO
+
+	resp := api.KrugResponse{
+		Data:   []byte{},
+		Errors: nil,
+	}
+	c.JSON(200, &resp)
+}

@@ -223,6 +223,16 @@ func (p *parser) parseReturn() StatementNode {
 	return NewReturnStatement(res)
 }
 
+func (p *parser) parseNext() StatementNode {
+	p.expect("next")
+	return NewNextStatement()
+}
+
+func (p *parser) parseBreak() StatementNode {
+	p.expect("break")
+	return NewBreakStatement()
+}
+
 func (p *parser) parseSemicolonStatement() StatementNode {
 	switch curr := p.next(); {
 	case curr.Matches("mut"):
@@ -231,6 +241,10 @@ func (p *parser) parseSemicolonStatement() StatementNode {
 		return p.parseLet()
 	case curr.Matches("return"):
 		return p.parseReturn()
+	case curr.Matches("next"):
+		return p.parseNext()
+	case curr.Matches("break"):
+		return p.parseBreak()
 	}
 
 	return p.parseExpressionStatement()

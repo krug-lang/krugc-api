@@ -10,10 +10,32 @@ func init() {
 	gob.Register(&MutableStatement{})
 	gob.Register(&ReturnStatement{})
 	gob.Register(&AssignStatement{})
+	gob.Register(&BreakStatement{})
+	gob.Register(&NextStatement{})
 }
 
 type StatementNode interface {
 	Print() string
+}
+
+type NextStatement struct{}
+
+func (n *NextStatement) Print() string {
+	return "next"
+}
+
+func NewNextStatement() *NextStatement {
+	return &NextStatement{}
+}
+
+type BreakStatement struct{}
+
+func (b *BreakStatement) Print() string {
+	return "break"
+}
+
+func NewBreakStatement() *BreakStatement {
+	return &BreakStatement{}
 }
 
 type ReturnStatement struct {

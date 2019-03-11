@@ -39,8 +39,13 @@ func main() {
 	// krug IR and type checks everything.
 	m := router.Group("/mid")
 	{
-		// resolves all of the types.
-		m.POST("/type_resolve", middle.TypeResolve)
+		r := m.Group("/resolve")
+		{
+			r.POST("/type", middle.TypeResolve)
+			r.POST("/build_scope", middle.BuildScope)
+			r.POST("/symbol", middle.SymbolResolve)
+		}
+
 	}
 
 	// backend of the compiler handles taking the

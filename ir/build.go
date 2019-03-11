@@ -231,18 +231,28 @@ func (b *builder) buildStat(s front.StatementNode) Instruction {
 		return b.buildLetStat(stat)
 	case *front.MutableStatement:
 		return b.buildMutStat(stat)
+
 	case *front.ReturnStatement:
 		return b.buildReturnStat(stat)
+
+	case *front.BreakStatement:
+		return NewBreak()
+	case *front.NextStatement:
+		return NewNext()
+
 	case *front.LoopStatement:
 		return b.buildLoopStat(stat)
 	case *front.WhileLoopStatement:
 		return b.buildWhileLoopStat(stat)
+
 	case *front.IfStatement:
 		return b.buildIfStat(stat)
+
 	case *front.AssignStatement:
 		return b.buildAssignStat(stat)
 	case front.ExpressionNode:
 		return b.buildExpr(stat)
+
 	default:
 		panic(fmt.Sprintf("unimplemented stat! %s", reflect.TypeOf(stat)))
 	}
