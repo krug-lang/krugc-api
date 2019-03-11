@@ -51,7 +51,7 @@ func BuildScope(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	scope, errs := buildScope(irMod)
+	_, errs := buildScope(irMod)
 
 	resp := api.KrugResponse{
 		Data:   []byte{},
