@@ -36,6 +36,11 @@ func (s *symResolvePass) resolveIden(i *ir.Identifier) {
 	}
 }
 
+func (s *symResolvePass) resolveAssign(a *ir.Assign) {
+	s.resolveValue(a.LHand)
+	s.resolveValue(a.RHand)
+}
+
 func (s *symResolvePass) resolveValue(e ir.Value) {
 	switch expr := e.(type) {
 	case *ir.IntegerValue:
@@ -45,6 +50,8 @@ func (s *symResolvePass) resolveValue(e ir.Value) {
 	case *ir.FloatingValue:
 		return
 
+	case *ir.Assign:
+		s.resolveAssign(expr)
 	case *ir.BinaryExpression:
 		s.resolveValue(expr.LHand)
 		s.resolveValue(expr.RHand)
@@ -76,10 +83,6 @@ func (s *symResolvePass) resolveBlock(b *ir.Block) {
 	s.pop()
 }
 
-func (s *symResolvePass) resolveAssign(a *ir.Assign) {
-	// TODO:
-}
-
 func (s *symResolvePass) resolveCall(c *ir.Call) {
 	// TODO:
 }
@@ -108,7 +111,7 @@ func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 	case *ir.WhileLoop:
 		s.resolveValue(instr.Cond)
 		if instr.Post != nil {
-			s.resolveValue(instr.Cond)
+			s.resolveValue(instr.Post)
 		}
 		s.resolveBlock(instr.Body)
 	case *ir.Loop:
