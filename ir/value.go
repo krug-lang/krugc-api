@@ -15,6 +15,7 @@ func init() {
 	gob.Register(&UnaryExpression{})
 	gob.Register(&Call{})
 	gob.Register(&Path{})
+	gob.Register(&Index{})
 }
 
 type Value interface{}
@@ -112,4 +113,15 @@ type Path struct {
 
 func NewPath(values []Value) *Path {
 	return &Path{values}
+}
+
+// INDEX
+
+type Index struct {
+	Left Value
+	Sub  Value
+}
+
+func NewIndex(left, sub Value) *Index {
+	return &Index{left, sub}
 }

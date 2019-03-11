@@ -14,6 +14,7 @@ func init() {
 	gob.Register(&BuiltinExpression{})
 	gob.Register(&PathExpression{})
 	gob.Register(&CallExpression{})
+	gob.Register(&IndexExpression{})
 }
 
 type ExpressionNode interface {
@@ -107,6 +108,21 @@ func (g *Grouping) Print() string {
 
 func NewGrouping(val ExpressionNode) *Grouping {
 	return &Grouping{val}
+}
+
+// INDEX EXPR
+
+type IndexExpression struct {
+	Left  ExpressionNode
+	Value ExpressionNode
+}
+
+func (i *IndexExpression) Print() string {
+	return fmt.Sprintf("%s[%s]", i.Left.Print(), i.Value.Print())
+}
+
+func NewIndexExpression(left, val ExpressionNode) *IndexExpression {
+	return &IndexExpression{left, val}
 }
 
 // CALL EXPR

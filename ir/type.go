@@ -19,6 +19,7 @@ func init() {
 	gob.Register(&Function{})
 	gob.Register(&TypeDict{})
 	gob.Register(&Impl{})
+	gob.Register(&ArrayType{})
 }
 
 var (
@@ -116,6 +117,21 @@ func (r *ReferenceType) String() string {
 
 func NewReferenceType(name string) *ReferenceType {
 	return &ReferenceType{name}
+}
+
+// ARRAY TYPE
+
+type ArrayType struct {
+	Base Type
+	Size Value
+}
+
+func (a *ArrayType) String() string {
+	return fmt.Sprintf("[%s; %s]", a.Base.String(), a.Size)
+}
+
+func NewArrayType(base Type, size Value) *ArrayType {
+	return &ArrayType{base, size}
 }
 
 // POINTER TYPE

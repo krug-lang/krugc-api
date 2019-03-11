@@ -51,14 +51,15 @@ func NewPointerType(base TypeNode) *PointerType {
 // [TypeNode]
 type ArrayType struct {
 	Base TypeNode
+	Size ExpressionNode
 }
 
 func (a *ArrayType) String() string {
 	return fmt.Sprintf("(arr %s)", a.Base)
 }
 
-func NewArrayType(base TypeNode) *ArrayType {
+func NewArrayType(base TypeNode, size ExpressionNode) *ArrayType {
 	return &ArrayType{
-		base,
+		base, size,
 	}
 }

@@ -46,6 +46,8 @@ func (t *typeResolvePass) resolveType(unresolvedType ir.Type) {
 		t.resolveType(typ.Base)
 	case *ir.ReferenceType:
 		t.resolveReferenceType(typ)
+	case *ir.ArrayType:
+		t.resolveType(typ.Base)
 
 	case *ir.IntegerType:
 		return
@@ -73,12 +75,21 @@ func (t *typeResolvePass) resolveInstr(i ir.Instruction) {
 		t.resolveAlloca(instr)
 	case *ir.Local:
 		t.resolveLocal(instr)
+	case *ir.WhileLoop:
+		t.resolveBlock(instr.Body)
+	case *ir.Loop:
+		t.resolveBlock(instr.Body)
+
+	// nops
 	case *ir.Path:
 		return
 	case *ir.Return:
 		return
 	case *ir.Call:
 		return
+	case *ir.Assign:
+		return
+
 	default:
 		panic(fmt.Sprintf("unhandled instruction %s", reflect.TypeOf(instr)))
 	}

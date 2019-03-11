@@ -33,6 +33,14 @@ func (b *builder) buildPointerType(p *front.PointerType) Type {
 	return NewPointerType(base)
 }
 
+func (b *builder) buildArrayType(p *front.ArrayType) Type {
+	// TODO should be constant expr.
+	size := b.buildExpr(p.Size)
+
+	base := b.buildType(p.Base)
+	return NewArrayType(base, size)
+}
+
 func (b *builder) buildType(n front.TypeNode) Type {
 	switch node := n.(type) {
 	case *front.UnresolvedType:
@@ -40,6 +48,9 @@ func (b *builder) buildType(n front.TypeNode) Type {
 
 	case *front.PointerType:
 		return b.buildPointerType(node)
+
+	case *front.ArrayType:
+		return b.buildArrayType(node)
 
 	default:
 		panic(fmt.Sprintf("unimplemented type %s", reflect.TypeOf(node)))
@@ -83,6 +94,12 @@ func (b *builder) buildCallExpression(e *front.CallExpression) Value {
 	return NewCall(left, params)
 }
 
+func (b *builder) buildIndexExpression(i *front.IndexExpression) Value {
+	left := b.buildExpr(i.Left)
+	sub := b.buildExpr(i.Value)
+	return NewIndex(left, sub)
+}
+
 func (b *builder) buildPathExpression(p *front.PathExpression) Value {
 	var values []Value
 	for _, e := range p.Values {
@@ -122,6 +139,9 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 
 	case *front.PathExpression:
 		return b.buildPathExpression(expr)
+
+	case *front.IndexExpression:
+		return b.buildIndexExpression(expr)
 
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", reflect.TypeOf(expr)))

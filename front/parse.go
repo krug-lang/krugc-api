@@ -64,10 +64,15 @@ func (p *parser) parseArrayType() *ArrayType {
 		panic("no type after array")
 	}
 
-	// TODO length expect(";"), parseConstant.
+	p.expect(";")
+
+	size := p.parseExpression()
+	if size == nil {
+		panic("expected length in array")
+	}
 
 	p.expect("]")
-	return NewArrayType(base)
+	return NewArrayType(base, size)
 }
 
 func (p *parser) parseUnresolvedType() *UnresolvedType {
@@ -505,6 +510,16 @@ func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
 	return NewCallExpression(left, params)
 }
 
+func (p *parser) parseIndex(left ExpressionNode) ExpressionNode {
+	p.expect("[")
+	val := p.parseExpression()
+	if val == nil {
+		panic("expected expression in array sub")
+	}
+	p.expect("]")
+	return NewIndexExpression(left, val)
+}
+
 func (p *parser) parsePrimaryExpr() ExpressionNode {
 	if !p.hasNext() {
 		return nil
@@ -529,10 +544,8 @@ func (p *parser) parsePrimaryExpr() ExpressionNode {
 	// TODO give left to these calls.
 	switch curr := p.next(); {
 	case curr.Matches("["):
-		// parseIndex
-		return nil
+		return p.parseIndex(left)
 	case curr.Matches("("):
-		// parseCall
 		return p.parseCall(left)
 	}
 
