@@ -92,6 +92,9 @@ func (e *emitter) buildExpr(l ir.Value) string {
 	case *ir.IntegerValue:
 		return val.RawValue.String()
 
+	case *ir.FloatingValue:
+		return fmt.Sprintf("%f", val.Value)
+
 	case *ir.StringValue:
 		return val.Value
 

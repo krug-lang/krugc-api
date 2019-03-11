@@ -103,6 +103,9 @@ func (t *typeResolvePass) resolveInstr(i ir.Instruction) {
 	case *ir.Assign:
 		return
 
+	case *ir.Block:
+		t.resolveBlock(instr)
+
 	default:
 		panic(fmt.Sprintf("unhandled instruction %s", reflect.TypeOf(instr)))
 	}

@@ -40,6 +40,10 @@ func TypeResolve(c *gin.Context) {
 	c.JSON(200, &resp)
 }
 
+// this returns the ir module, modified
+// with the symbol tables. I feel like
+// this should, however, just return the
+// stab tree structure?
 func BuildScope(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
@@ -51,12 +55,20 @@ func BuildScope(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	_, errs := buildScope(irMod)
+	scopedMod, errs := buildScope(irMod)
+
+	// write new module with built scopes.
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&scopedMod); err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   []byte{},
+		Data:   buff.Bytes(),
 		Errors: errs,
 	}
+
 	c.JSON(200, &resp)
 }
 

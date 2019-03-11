@@ -182,6 +182,7 @@ func newTypeDict() *TypeDict {
 
 type Structure struct {
 	Name    string
+	Stab    *SymbolTable
 	Fields  *TypeDict
 	Methods map[string]*Function
 }
@@ -195,20 +196,21 @@ func (s *Structure) String() string {
 }
 
 func NewStructure(name string, fields *TypeDict) *Structure {
-	return &Structure{name, fields, map[string]*Function{}}
+	return &Structure{name, nil, fields, map[string]*Function{}}
 }
 
 // FUNCTION
 
 type Function struct {
 	Name       string
+	Stab       *SymbolTable
 	Param      *TypeDict
 	ReturnType Type
 	Body       *Block
 }
 
 func NewFunction(name string, params *TypeDict, ret Type) *Function {
-	return &Function{name, params, ret, NewBlock()}
+	return &Function{name, nil, params, ret, NewBlock()}
 }
 
 type UnclaimedMethod struct {
@@ -220,13 +222,18 @@ type UnclaimedMethod struct {
 
 type Impl struct {
 	Name    string
+	Stab    *SymbolTable
 	Methods map[string]*Function
 }
 
-func (i *Impl) RegisterMethod(fn *Function) {
+func (i *Impl) RegisterMethod(fn *Function) bool {
+	if _, ok := i.Methods[fn.Name]; ok {
+		return false
+	}
 	i.Methods[fn.Name] = fn
+	return true
 }
 
 func NewImpl(name string) *Impl {
-	return &Impl{name, map[string]*Function{}}
+	return &Impl{name, nil, map[string]*Function{}}
 }

@@ -364,6 +364,8 @@ func (p *parser) parseStatement() StatementNode {
 		return p.parseLoop()
 	case curr.Matches("while"):
 		return p.parseWhileLoop()
+	case curr.Matches("{"):
+		return NewBlockNode(p.parseStatBlock())
 	}
 
 	stat := p.parseSemicolonStatement()

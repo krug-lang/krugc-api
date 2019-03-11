@@ -10,6 +10,7 @@ func init() {
 
 type Module struct {
 	Name       string
+	Root       *SymbolTable
 	Structures map[string]*Structure
 	Functions  map[string]*Function
 	Impls      map[string]*Impl
@@ -18,6 +19,7 @@ type Module struct {
 func NewModule(name string) *Module {
 	return &Module{
 		name,
+		nil,
 		map[string]*Structure{},
 		map[string]*Function{},
 		map[string]*Impl{},

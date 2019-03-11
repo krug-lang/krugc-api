@@ -12,6 +12,7 @@ func init() {
 	gob.Register(&AssignStatement{})
 	gob.Register(&BreakStatement{})
 	gob.Register(&NextStatement{})
+	gob.Register(&BlockNode{})
 }
 
 type StatementNode interface {
@@ -79,6 +80,22 @@ func NewMutableStatement(name string, typ TypeNode, val ExpressionNode) *Mutable
 func (m *MutableStatement) Print() string {
 	return fmt.Sprintf("mut %s = ", m.Name)
 }
+
+// BLOCK NODE
+
+type BlockNode struct {
+	Stats []StatementNode
+}
+
+func (b *BlockNode) Print() string {
+	return "{ ... }"
+}
+
+func NewBlockNode(stats []StatementNode) *BlockNode {
+	return &BlockNode{stats}
+}
+
+// ASSIGN
 
 type AssignStatement struct {
 	LHand ExpressionNode

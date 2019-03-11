@@ -113,6 +113,9 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 	case *front.IntegerConstant:
 		return NewIntegerValue(expr.Value)
 
+	case *front.FloatingConstant:
+		return NewFloatingValue(expr.Value)
+
 	case *front.StringConstant:
 		return NewStringValue(expr.Value)
 
@@ -132,7 +135,7 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 		return b.buildUnaryExpr(expr)
 
 	case *front.AssignStatement:
-		return b.buildAssignStat(expr)
+		return b.buildAssignStat(expr).(*Assign)
 
 	case *front.CallExpression:
 		return b.buildCallExpression(expr)
@@ -150,20 +153,47 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 }
 
 func (b *builder) buildLetStat(l *front.LetStatement) Instruction {
-	typ := b.buildType(l.Type)
-	local := NewLocal(l.Name, typ)
+	var val Value
 	if l.Value != nil {
-		local.SetValue(b.buildExpr(l.Value))
+		val = b.buildExpr(l.Value)
 	}
+
+	var typ Type
+	if l.Type != nil {
+		typ = b.buildType(l.Type)
+	} else {
+		if val == nil {
+			panic("no expression to infer from")
+		}
+		// infer type from expr.
+		typ = val.InferredType()
+	}
+
+	local := NewLocal(l.Name, typ)
+	local.SetValue(val)
+	local.SetMutable(true)
 	return local
 }
 
 func (b *builder) buildMutStat(m *front.MutableStatement) Instruction {
-	typ := b.buildType(m.Type)
-	local := NewLocal(m.Name, typ)
+	var val Value
 	if m.Value != nil {
-		local.SetValue(b.buildExpr(m.Value))
+		val = b.buildExpr(m.Value)
 	}
+
+	var typ Type
+	if m.Type != nil {
+		typ = b.buildType(m.Type)
+	} else {
+		if val == nil {
+			panic("no expression to infer from")
+		}
+		// infer type from expr.
+		typ = val.InferredType()
+	}
+
+	local := NewLocal(m.Name, typ)
+	local.SetValue(val)
 	local.SetMutable(true)
 	return local
 }
@@ -227,6 +257,9 @@ func (b *builder) buildAssignStat(a *front.AssignStatement) Instruction {
 
 func (b *builder) buildStat(s front.StatementNode) Instruction {
 	switch stat := s.(type) {
+	case *front.BlockNode:
+		return b.buildBlock(stat.Stats)
+
 	case *front.LetStatement:
 		return b.buildLetStat(stat)
 	case *front.MutableStatement:
@@ -323,7 +356,10 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 
 		for _, fn := range in.Functions {
 			builtFunc := b.buildFunc(fn)
-			impl.RegisterMethod(builtFunc)
+			ok := impl.RegisterMethod(builtFunc)
+			if !ok {
+				b.error(api.NewSymbolError(fn.Name))
+			}
 		}
 	}
 

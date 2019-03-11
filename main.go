@@ -39,10 +39,11 @@ func main() {
 	// krug IR and type checks everything.
 	m := router.Group("/mid")
 	{
+		m.POST("/build_scope", middle.BuildScope)
+
 		r := m.Group("/resolve")
 		{
 			r.POST("/type", middle.TypeResolve)
-			r.POST("/build_scope", middle.BuildScope)
 			r.POST("/symbol", middle.SymbolResolve)
 		}
 

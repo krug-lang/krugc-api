@@ -22,6 +22,7 @@ type Instruction interface{}
 
 type Block struct {
 	Instr []Instruction
+	Stab  *SymbolTable
 }
 
 func (b *Block) AddInstr(instr Instruction) {
@@ -31,6 +32,7 @@ func (b *Block) AddInstr(instr Instruction) {
 func NewBlock() *Block {
 	return &Block{
 		[]Instruction{},
+		nil,
 	}
 }
 
@@ -40,6 +42,10 @@ type Assign struct {
 	LHand Value
 	Op    string
 	RHand Value
+}
+
+func (a *Assign) InferredType() Type {
+	panic("handle this in sema?")
 }
 
 func NewAssign(lh Value, op string, rh Value) *Assign {
