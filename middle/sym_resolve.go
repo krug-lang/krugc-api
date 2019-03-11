@@ -107,6 +107,9 @@ func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 		}
 	case *ir.WhileLoop:
 		s.resolveValue(instr.Cond)
+		if instr.Post != nil {
+			s.resolveValue(instr.Cond)
+		}
 		s.resolveBlock(instr.Body)
 	case *ir.Loop:
 		s.resolveBlock(instr.Body)
