@@ -83,11 +83,11 @@ func SymbolResolve(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	//TODO
+	errors := symResolve(irMod)
 
 	resp := api.KrugResponse{
 		Data:   []byte{},
-		Errors: nil,
+		Errors: errors,
 	}
 	c.JSON(200, &resp)
 }

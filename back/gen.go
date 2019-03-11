@@ -108,7 +108,7 @@ func (e *emitter) buildExpr(l ir.Value) string {
 		return fmt.Sprintf("(%s)", value)
 
 	case *ir.Identifier:
-		return val.Name
+		return val.Name.Value
 
 	case *ir.Builtin:
 		return e.buildBuiltin(val)
@@ -284,7 +284,7 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 	e.indentLevel++
 
 	for _, name := range st.Fields.Order {
-		t := st.Fields.Get(name)
+		t := st.Fields.Get(name.Value)
 
 		typ := e.writeType(t)
 		e.writetln(e.indentLevel, "%s %s;", typ, name)
@@ -295,9 +295,9 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 }
 
 func (e *emitter) emitFunc(fn *ir.Function) {
-	mangledFuncName := fn.Name
-	if strings.Compare(fn.Name, "main") == 0 {
-		mangledFuncName = "krug_" + fn.Name
+	mangledFuncName := fn.Name.Value
+	if strings.Compare(fn.Name.Value, "main") == 0 {
+		mangledFuncName = "krug_" + fn.Name.Value
 	}
 
 	writeArgList := func(fn *ir.Function) string {
@@ -305,7 +305,7 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 
 		idx := 0
 		for _, name := range fn.Param.Order {
-			t := fn.Param.Get(name)
+			t := fn.Param.Get(name.Value)
 
 			if idx != 0 {
 				argList += ", "

@@ -1,6 +1,10 @@
 package ir
 
-import "encoding/gob"
+import (
+	"encoding/gob"
+
+	"github.com/krug-lang/krugc-api/front"
+)
 
 func init() {
 	gob.Register(&Block{})
@@ -55,7 +59,7 @@ func NewAssign(lh Value, op string, rh Value) *Assign {
 // LOCAL
 
 type Local struct {
-	Name    string
+	Name    front.Token
 	Type    Type
 	Mutable bool
 	Val     Value
@@ -69,14 +73,14 @@ func (l *Local) SetMutable(m bool) {
 	l.Mutable = m
 }
 
-func NewLocal(name string, typ Type) *Local {
+func NewLocal(name front.Token, typ Type) *Local {
 	return &Local{name, typ, false, nil}
 }
 
 // ALLOCA
 
 type Alloca struct {
-	Name string
+	Name front.Token
 	Type Type
 	Val  Value
 }
@@ -85,7 +89,7 @@ func (a *Alloca) SetValue(v Value) {
 	a.Val = v
 }
 
-func NewAlloca(name string, typ Type) *Alloca {
+func NewAlloca(name front.Token, typ Type) *Alloca {
 	return &Alloca{name, typ, nil}
 }
 

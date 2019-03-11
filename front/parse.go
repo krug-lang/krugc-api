@@ -95,7 +95,7 @@ func (p *parser) parseType() TypeNode {
 
 func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 	p.expect("struct")
-	name := p.consume().Value
+	name := p.consume()
 
 	fields := []*NamedType{}
 
@@ -111,7 +111,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 		if typ == nil {
 			panic("no type!")
 		}
-		fields = append(fields, &NamedType{name.Value, typ})
+		fields = append(fields, &NamedType{name, typ})
 
 		// trailing commas are enforced.
 		p.expect(",")
@@ -123,7 +123,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 
 func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
 	p.expect("func")
-	name := p.expectKind(Identifier).Value
+	name := p.expectKind(Identifier)
 
 	args := []*NamedType{}
 
@@ -144,7 +144,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 			panic("expected type in func proto")
 		}
 
-		args = append(args, &NamedType{name.Value, typ})
+		args = append(args, &NamedType{name, typ})
 	}
 	p.expect(")")
 
@@ -184,7 +184,7 @@ func (p *parser) parseMut() StatementNode {
 		panic("expected value or type in mutable statement")
 	}
 
-	return NewMutableStatement(name.Value, typ, val)
+	return NewMutableStatement(name, typ, val)
 }
 
 // let is a constant variable.
@@ -203,7 +203,7 @@ func (p *parser) parseLet() StatementNode {
 	// let MUST have a value assigned.
 	p.expect("=")
 	value := p.parseExpression()
-	return NewLetStatement(name.Value, typ, value)
+	return NewLetStatement(name, typ, value)
 }
 
 func (p *parser) parseReturn() StatementNode {
@@ -396,7 +396,7 @@ func (p *parser) parseFunctionDeclaration() *FunctionDeclaration {
 
 func (p *parser) parseImplDeclaration() *ImplDeclaration {
 	p.expect("impl")
-	name := p.expectKind(Identifier).Value
+	name := p.expectKind(Identifier)
 
 	functions := []*FunctionDeclaration{}
 
@@ -419,7 +419,7 @@ func (p *parser) parseImplDeclaration() *ImplDeclaration {
 func (p *parser) parseTraitDeclaration() *TraitDeclaration {
 	p.expect("trait")
 
-	name := p.expectKind(Identifier).Value
+	name := p.expectKind(Identifier)
 
 	members := []*FunctionPrototypeDeclaration{}
 
@@ -483,7 +483,7 @@ func (p *parser) parseOperand() ExpressionNode {
 		}
 		return NewFloatingConstant(curr.Value)
 	case Identifier:
-		return NewVariableReference(curr.Value)
+		return NewVariableReference(curr)
 
 	case String:
 		return NewStringConstant(curr.Value)

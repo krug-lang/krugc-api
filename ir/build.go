@@ -334,7 +334,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	// go through structures again
 	// this time process the fields
 	for _, sn := range structureNodes {
-		structure, ok := m.GetStructure(sn.Name)
+		structure, ok := m.GetStructure(sn.Name.Value)
 		if !ok {
 			panic(fmt.Sprintf("couldn't find structure %s", sn.Name))
 		}
@@ -349,7 +349,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	}
 
 	for _, in := range implNodes {
-		impl, ok := m.GetImpl(in.Name)
+		impl, ok := m.GetImpl(in.Name.Value)
 		if !ok {
 			panic(fmt.Sprintf("couldn't find impl %s", in.Name))
 		}
@@ -358,7 +358,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 			builtFunc := b.buildFunc(fn)
 			ok := impl.RegisterMethod(builtFunc)
 			if !ok {
-				b.error(api.NewSymbolError(fn.Name))
+				b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
 			}
 		}
 	}

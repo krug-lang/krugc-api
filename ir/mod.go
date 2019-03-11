@@ -1,6 +1,10 @@
 package ir
 
-import "encoding/gob"
+import (
+	"encoding/gob"
+
+	"github.com/krug-lang/krugc-api/front"
+)
 
 func init() {
 	gob.Register(&Module{})
@@ -9,11 +13,17 @@ func init() {
 // MODULE
 
 type Module struct {
-	Name       string
-	Root       *SymbolTable
-	Structures map[string]*Structure
-	Functions  map[string]*Function
+	Name string
+	Root *SymbolTable
+
+	Structures     map[string]*Structure
+	StructureOrder []front.Token
+
+	Functions     map[string]*Function
+	FunctionOrder []front.Token
+
 	Impls      map[string]*Impl
+	ImplsOrder []front.Token
 }
 
 func NewModule(name string) *Module {
@@ -21,8 +31,11 @@ func NewModule(name string) *Module {
 		name,
 		nil,
 		map[string]*Structure{},
+		[]front.Token{},
 		map[string]*Function{},
+		[]front.Token{},
 		map[string]*Impl{},
+		[]front.Token{},
 	}
 }
 
@@ -40,17 +53,20 @@ func (m *Module) GetImpl(name string) (*Impl, bool) {
 // returns TRUE if an impl has already been registered with
 // the same name and FALSE if not.
 func (m *Module) RegisterImpl(i *Impl) (failed bool) {
-	if _, ok := m.Impls[i.Name]; ok {
+	if _, ok := m.Impls[i.Name.Value]; ok {
 		return true
 	}
-	m.Impls[i.Name] = i
+	m.ImplsOrder = append(m.ImplsOrder, i.Name)
+	m.Impls[i.Name.Value] = i
 	return false
 }
 
 func (m *Module) RegisterStructure(s *Structure) {
-	m.Structures[s.Name] = s
+	m.StructureOrder = append(m.StructureOrder, s.Name)
+	m.Structures[s.Name.Value] = s
 }
 
 func (m *Module) RegisterFunction(f *Function) {
-	m.Functions[f.Name] = f
+	m.FunctionOrder = append(m.FunctionOrder, f.Name)
+	m.Functions[f.Name.Value] = f
 }

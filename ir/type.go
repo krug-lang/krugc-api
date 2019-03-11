@@ -3,6 +3,8 @@ package ir
 import (
 	"encoding/gob"
 	"fmt"
+
+	"github.com/krug-lang/krugc-api/front"
 )
 
 type Type interface {
@@ -152,7 +154,7 @@ func NewPointerType(base Type) *PointerType {
 
 type TypeDict struct {
 	Data  map[string]Type
-	Order []string
+	Order []front.Token
 }
 
 func (t *TypeDict) Get(k string) Type {
@@ -160,56 +162,56 @@ func (t *TypeDict) Get(k string) Type {
 	return typ
 }
 
-func (t *TypeDict) Set(a string, typ Type) {
+func (t *TypeDict) Set(a front.Token, typ Type) {
 	t.Order = append(t.Order, a)
-	t.Data[a] = typ
+	t.Data[a.Value] = typ
 }
 
 func (t TypeDict) String() string {
 	var fields string
 	for _, name := range t.Order {
-		field, _ := t.Data[name]
+		field, _ := t.Data[name.Value]
 		fields += fmt.Sprintf("%s:%s,", name, field.String())
 	}
 	return fields
 }
 
 func newTypeDict() *TypeDict {
-	return &TypeDict{map[string]Type{}, []string{}}
+	return &TypeDict{map[string]Type{}, []front.Token{}}
 }
 
 // STRUCTURE
 
 type Structure struct {
-	Name    string
+	Name    front.Token
 	Stab    *SymbolTable
 	Fields  *TypeDict
 	Methods map[string]*Function
 }
 
 func (s *Structure) RegisterMethod(f *Function) {
-	s.Methods[f.Name] = f
+	s.Methods[f.Name.Value] = f
 }
 
 func (s *Structure) String() string {
 	return fmt.Sprintf("%s{%s}", s.Name, s.Fields)
 }
 
-func NewStructure(name string, fields *TypeDict) *Structure {
+func NewStructure(name front.Token, fields *TypeDict) *Structure {
 	return &Structure{name, nil, fields, map[string]*Function{}}
 }
 
 // FUNCTION
 
 type Function struct {
-	Name       string
+	Name       front.Token
 	Stab       *SymbolTable
 	Param      *TypeDict
 	ReturnType Type
 	Body       *Block
 }
 
-func NewFunction(name string, params *TypeDict, ret Type) *Function {
+func NewFunction(name front.Token, params *TypeDict, ret Type) *Function {
 	return &Function{name, nil, params, ret, NewBlock()}
 }
 
@@ -221,19 +223,19 @@ type UnclaimedMethod struct {
 // IMPL - method group
 
 type Impl struct {
-	Name    string
+	Name    front.Token
 	Stab    *SymbolTable
 	Methods map[string]*Function
 }
 
 func (i *Impl) RegisterMethod(fn *Function) bool {
-	if _, ok := i.Methods[fn.Name]; ok {
+	if _, ok := i.Methods[fn.Name.Value]; ok {
 		return false
 	}
-	i.Methods[fn.Name] = fn
+	i.Methods[fn.Name.Value] = fn
 	return true
 }
 
-func NewImpl(name string) *Impl {
+func NewImpl(name front.Token) *Impl {
 	return &Impl{name, nil, map[string]*Function{}}
 }

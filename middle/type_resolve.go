@@ -123,14 +123,14 @@ func (t *typeResolvePass) resolveStructure(st *ir.Structure) {
 	}
 
 	for _, name := range st.Fields.Order {
-		typ, _ := st.Fields.Data[name]
+		typ, _ := st.Fields.Data[name.Value]
 		t.resolveType(typ)
 	}
 }
 
 func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
 	for _, name := range fn.Param.Order {
-		param, _ := fn.Param.Data[name]
+		param, _ := fn.Param.Data[name.Value]
 		t.resolveType(param)
 	}
 
@@ -142,7 +142,7 @@ func typeResolve(mod *ir.Module) []api.CompilerError {
 	trp := &typeResolvePass{mod, []api.CompilerError{}}
 
 	for _, impl := range mod.Impls {
-		structure, ok := mod.GetStructure(impl.Name)
+		structure, ok := mod.GetStructure(impl.Name.Value)
 		if !ok {
 			trp.error(api.CompilerError{
 				Title: fmt.Sprintf("Couldn't resolve structure '%s' being implemented", impl.Name),

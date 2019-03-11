@@ -15,14 +15,14 @@ func init() {
 }
 
 type VariableReference struct {
-	Name string
+	Name Token
 }
 
 func (v *VariableReference) Print() string {
-	return v.Name
+	return v.Name.Value
 }
 
-func NewVariableReference(name string) *VariableReference {
+func NewVariableReference(name Token) *VariableReference {
 	return &VariableReference{name}
 }
 

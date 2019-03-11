@@ -15,7 +15,7 @@ func init() {
 }
 
 type NamedType struct {
-	Name string
+	Name Token
 	Type TypeNode
 }
 
@@ -25,7 +25,7 @@ type NamedType struct {
 
 // "struct" iden { ... }
 type StructureDeclaration struct {
-	Name   string
+	Name   Token
 	Fields []*NamedType
 }
 
@@ -33,7 +33,7 @@ func (s *StructureDeclaration) Print() string {
 	return fmt.Sprintf("(struct %s, fields %s)", s.Name, s.Fields)
 }
 
-func NewStructureDeclaration(name string, fields []*NamedType) *StructureDeclaration {
+func NewStructureDeclaration(name Token, fields []*NamedType) *StructureDeclaration {
 	return &StructureDeclaration{
 		Name:   name,
 		Fields: fields,
@@ -50,11 +50,11 @@ func (s *StructureDeclaration) NodeName() string {
 
 // "trait" iden { ... }
 type TraitDeclaration struct {
-	Name    string
+	Name    Token
 	Members []*FunctionPrototypeDeclaration
 }
 
-func NewTraitDeclaration(name string, members []*FunctionPrototypeDeclaration) *TraitDeclaration {
+func NewTraitDeclaration(name Token, members []*FunctionPrototypeDeclaration) *TraitDeclaration {
 	return &TraitDeclaration{
 		name, members,
 	}
@@ -74,7 +74,7 @@ func (t *TraitDeclaration) NodeName() string {
 
 // impl Name
 type ImplDeclaration struct {
-	Name      string
+	Name      Token
 	Functions []*FunctionDeclaration
 }
 
@@ -82,7 +82,7 @@ func (i *ImplDeclaration) Print() string {
 	return fmt.Sprintf("(impl %s)", i.Name)
 }
 
-func NewImplDeclaration(name string, funcs []*FunctionDeclaration) *ImplDeclaration {
+func NewImplDeclaration(name Token, funcs []*FunctionDeclaration) *ImplDeclaration {
 	return &ImplDeclaration{
 		name, funcs,
 	}
@@ -98,7 +98,7 @@ func (i *ImplDeclaration) NodeName() string {
 
 // "func" iden "(" args ")"
 type FunctionPrototypeDeclaration struct {
-	Name      string
+	Name      Token
 	Arguments []*NamedType
 
 	// TODO should this be set to anything by
@@ -115,7 +115,7 @@ func (f *FunctionPrototypeDeclaration) Print() string {
 	return fmt.Sprintf("(func %s, args %s)", f.Name, f.Arguments)
 }
 
-func NewFunctionPrototypeDeclaration(name string, args []*NamedType) *FunctionPrototypeDeclaration {
+func NewFunctionPrototypeDeclaration(name Token, args []*NamedType) *FunctionPrototypeDeclaration {
 	return &FunctionPrototypeDeclaration{
 		Name:      name,
 		Arguments: args,

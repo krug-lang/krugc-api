@@ -3,6 +3,8 @@ package ir
 import (
 	"encoding/gob"
 	"math/rand"
+
+	"github.com/krug-lang/krugc-api/front"
 )
 
 func init() {
@@ -13,10 +15,10 @@ func init() {
 type SymbolValue interface{}
 
 type Symbol struct {
-	Name string
+	Name front.Token
 }
 
-func NewSymbol(name string) *Symbol {
+func NewSymbol(name front.Token) *Symbol {
 	return &Symbol{name}
 }
 

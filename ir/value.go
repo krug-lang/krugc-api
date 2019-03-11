@@ -3,6 +3,8 @@ package ir
 import (
 	"encoding/gob"
 	"math/big"
+
+	"github.com/krug-lang/krugc-api/front"
 )
 
 func init() {
@@ -117,14 +119,14 @@ func NewStringValue(val string) *StringValue {
 // IDENTIFIER
 
 type Identifier struct {
-	Name string
+	Name front.Token
 }
 
 func (i *Identifier) InferredType() Type {
 	panic("we need to deal with this later after name resolution")
 }
 
-func NewIdentifier(name string) *Identifier {
+func NewIdentifier(name front.Token) *Identifier {
 	return &Identifier{name}
 }
 

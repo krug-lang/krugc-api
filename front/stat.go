@@ -53,12 +53,12 @@ func NewReturnStatement(val ExpressionNode) *ReturnStatement {
 
 // "let" iden [ ":" Type ] = Value;
 type LetStatement struct {
-	Name  string
+	Name  Token
 	Type  TypeNode
 	Value ExpressionNode
 }
 
-func NewLetStatement(name string, kind TypeNode, val ExpressionNode) *LetStatement {
+func NewLetStatement(name Token, kind TypeNode, val ExpressionNode) *LetStatement {
 	return &LetStatement{name, kind, val}
 }
 
@@ -68,12 +68,12 @@ func (l *LetStatement) Print() string {
 
 // "mut" iden [ ":" Type ] [ = Value ];
 type MutableStatement struct {
-	Name  string
+	Name  Token
 	Type  TypeNode
 	Value ExpressionNode
 }
 
-func NewMutableStatement(name string, typ TypeNode, val ExpressionNode) *MutableStatement {
+func NewMutableStatement(name Token, typ TypeNode, val ExpressionNode) *MutableStatement {
 	return &MutableStatement{name, typ, val}
 }
 
