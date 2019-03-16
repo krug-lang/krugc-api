@@ -16,6 +16,33 @@ type CompilerError struct {
 	CodeContext []int
 }
 
+func NewUnimplementedError(what string, points ...int) CompilerError {
+	return CompilerError{
+		Title:       fmt.Sprintf("%s unimplemented", what),
+		Desc:        "",
+		Fatal:       true,
+		CodeContext: points,
+	}
+}
+
+func NewParseError(expected string, points ...int) CompilerError {
+	return CompilerError{
+		Title:       fmt.Sprintf("Expected %s", expected),
+		Desc:        "",
+		Fatal:       true,
+		CodeContext: points,
+	}
+}
+
+func NewUnexpectedToken(curr string, expected string, points ...int) CompilerError {
+	return CompilerError{
+		Title:       fmt.Sprintf("Expected '%s' but found '%s'", expected, curr),
+		Desc:        "",
+		Fatal:       true,
+		CodeContext: points,
+	}
+}
+
 func NewUnresolvedSymbol(name string, points ...int) CompilerError {
 	return CompilerError{
 		Title:       fmt.Sprintf("Unresolved reference to symbol '%s'", name),

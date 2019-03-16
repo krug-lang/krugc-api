@@ -29,11 +29,12 @@ func (s *symResolvePass) pop() {
 	}
 }
 
-func (s *symResolvePass) resolveIden(i *ir.Identifier) {
-	_, ok := s.curr.Lookup(i.Name.Value)
+func (s *symResolvePass) resolveIden(i *ir.Identifier) (ir.SymbolValue, bool) {
+	val, ok := s.curr.Lookup(i.Name.Value)
 	if !ok {
 		s.error(api.NewUnresolvedSymbol(i.Name.Value, i.Name.Span...))
 	}
+	return val, ok
 }
 
 func (s *symResolvePass) resolveAssign(a *ir.Assign) {
@@ -41,22 +42,27 @@ func (s *symResolvePass) resolveAssign(a *ir.Assign) {
 	s.resolveValue(a.RHand)
 }
 
-func (s *symResolvePass) resolveValue(e ir.Value) {
+func (s *symResolvePass) resolveValue(e ir.Value) ir.SymbolValue {
 	switch expr := e.(type) {
 	case *ir.IntegerValue:
-		return
+		return nil
 	case *ir.StringValue:
-		return
+		return nil
 	case *ir.FloatingValue:
-		return
+		return nil
 
 	case *ir.Assign:
 		s.resolveAssign(expr)
+		return nil
+
 	case *ir.BinaryExpression:
 		s.resolveValue(expr.LHand)
 		s.resolveValue(expr.RHand)
+		return nil
+
 	case *ir.Identifier:
-		s.resolveIden(expr)
+		stab, _ := s.resolveIden(expr)
+		return stab
 
 	default:
 		panic(fmt.Sprintf("unhandled val %s", reflect.TypeOf(expr)))
@@ -87,6 +93,28 @@ func (s *symResolvePass) resolveCall(c *ir.Call) {
 	// TODO:
 }
 
+func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val ir.Value) ir.SymbolValue {
+	if last == nil {
+		return s.resolveValue(val)
+	}
+
+	switch v := val.(type) {
+	case *ir.Identifier:
+		val, ok := last.Lookup(v.Name.Value)
+		if !ok {
+			s.error(api.NewUnresolvedSymbol(v.Name.Value))
+		}
+		return val
+
+	default:
+		panic(fmt.Sprintf("unhandled value %s", reflect.TypeOf(v)))
+	}
+}
+
+func (s *symResolvePass) resolvePath(p *ir.Path) {
+	s.resolveValue(p.Values[0])
+}
+
 func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 	switch instr := i.(type) {
 	case *ir.Alloca:
@@ -98,6 +126,8 @@ func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 		if instr.Val != nil {
 			s.resolveValue(instr.Val)
 		}
+	case *ir.Path:
+		s.resolvePath(instr)
 
 	case *ir.IfStatement:
 		s.resolveValue(instr.Cond)

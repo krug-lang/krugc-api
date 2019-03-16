@@ -1,15 +1,21 @@
 package front
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/krug-lang/krugc-api/api"
 )
 
+var BadToken Token
+
 type parser struct {
-	toks []Token
-	pos  int
+	toks   []Token
+	pos    int
+	errors []api.CompilerError
+}
+
+func (p *parser) error(e api.CompilerError) {
+	p.errors = append(p.errors, e)
 }
 
 func (p *parser) peek(offs int) (tok Token) {
@@ -23,19 +29,26 @@ func (p *parser) next() (tok Token) {
 }
 
 func (p *parser) expect(val string) (tok Token) {
+	start := p.pos
 	if p.hasNext() {
 		if tok = p.consume(); tok.Matches(val) {
 			return tok
 		}
 	}
-	panic(fmt.Sprintf("Expected '%s', got '%s'", val, tok))
+
+	p.error(api.NewUnexpectedToken(val, p.next().Value, start, p.pos))
+	return BadToken
 }
 
 func (p *parser) expectKind(kind TokenType) (tok Token) {
+	start := p.pos
+
 	if tok = p.consume(); tok.Kind == kind {
 		return tok
 	}
-	panic(fmt.Sprintf("Expected '%s', got '%s'", kind, tok))
+
+	p.error(api.NewUnexpectedToken(string(kind), p.next().Value, start, p.pos))
+	return BadToken
 }
 
 func (p *parser) consume() (tok Token) {
@@ -49,26 +62,30 @@ func (p *parser) hasNext() bool {
 }
 
 func (p *parser) parsePointerType() *PointerType {
+	start := p.pos
 	p.expect("^")
 	base := p.parseType()
 	if base == nil {
-		panic("no type after ptr")
+		p.error(api.NewParseError("type after pointer", start, p.pos))
+		return nil
 	}
 	return NewPointerType(base)
 }
 
 func (p *parser) parseArrayType() *ArrayType {
+	start := p.pos
+
 	p.expect("[")
 	base := p.parseType()
 	if base == nil {
-		panic("no type after array")
+		p.error(api.NewParseError("array type", start, p.pos))
 	}
 
 	p.expect(";")
 
 	size := p.parseExpression()
 	if size == nil {
-		panic("expected length in array")
+		p.error(api.NewParseError("array length constant", start, p.pos))
 	}
 
 	p.expect("]")
@@ -81,6 +98,7 @@ func (p *parser) parseUnresolvedType() *UnresolvedType {
 }
 
 func (p *parser) parseType() TypeNode {
+	start := p.pos
 	switch curr := p.next(); {
 	case curr.Matches("^"):
 		return p.parsePointerType()
@@ -89,11 +107,14 @@ func (p *parser) parseType() TypeNode {
 	case curr.Kind == Identifier:
 		return p.parseUnresolvedType()
 	default:
-		panic(fmt.Sprintf("unimplemented type %s", curr))
+		p.error(api.NewUnimplementedError("type", start, p.pos))
+		return nil
 	}
 }
 
 func (p *parser) parseStructureDeclaration() *StructureDeclaration {
+	start := p.pos
+
 	p.expect("struct")
 	name := p.consume()
 
@@ -109,7 +130,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 
 		typ := p.parseType()
 		if typ == nil {
-			panic("no type!")
+			p.error(api.NewParseError("type", start, p.pos))
 		}
 		fields = append(fields, &NamedType{name, typ})
 
@@ -122,6 +143,8 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 }
 
 func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
+	start := p.pos
+
 	p.expect("func")
 	name := p.expectKind(Identifier)
 
@@ -141,7 +164,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 		name := p.expectKind(Identifier)
 		typ := p.parseType()
 		if typ == nil {
-			panic("expected type in func proto")
+			p.error(api.NewParseError("type after pointer", start, p.pos))
 		}
 
 		args = append(args, &NamedType{name, typ})
@@ -159,6 +182,8 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 
 // mut x [ type ] [ = val ]
 func (p *parser) parseMut() StatementNode {
+	start := p.pos
+
 	p.expect("mut")
 	name := p.expectKind(Identifier)
 
@@ -166,7 +191,7 @@ func (p *parser) parseMut() StatementNode {
 	if !p.next().Matches("=") {
 		typ = p.parseType()
 		if typ == nil {
-			panic("expected type or assignment")
+			p.error(api.NewParseError("type after assignment", start, p.pos))
 		}
 	}
 
@@ -176,12 +201,12 @@ func (p *parser) parseMut() StatementNode {
 
 		val = p.parseExpression()
 		if val == nil {
-			panic("expected assignment")
+			p.error(api.NewParseError("assignment", start, p.pos))
 		}
 	}
 
 	if val == nil && typ == nil {
-		panic("expected value or type in mutable statement")
+		p.error(api.NewParseError("value or type in mut statement", start, p.pos))
 	}
 
 	return NewMutableStatement(name, typ, val)
@@ -189,6 +214,8 @@ func (p *parser) parseMut() StatementNode {
 
 // let is a constant variable.
 func (p *parser) parseLet() StatementNode {
+	start := p.pos
+
 	p.expect("let")
 	name := p.expectKind(Identifier)
 
@@ -196,13 +223,18 @@ func (p *parser) parseLet() StatementNode {
 	if !p.next().Matches("=") {
 		typ = p.parseType()
 		if typ == nil {
-			panic("expected type or assignment")
+			p.error(api.NewParseError("type or assignment", start, p.pos))
 		}
 	}
 
-	// let MUST have a value assigned.
-	p.expect("=")
-	value := p.parseExpression()
+	var value ExpressionNode
+	if p.next().Matches("=") {
+		p.expect("=")
+		value = p.parseExpression()
+		if value == nil {
+			p.error(api.NewParseError("expression in let statement", start, p.pos))
+		}
+	}
 	return NewLetStatement(name, typ, value)
 }
 
@@ -210,13 +242,14 @@ func (p *parser) parseReturn() StatementNode {
 	if !p.next().Matches("return") {
 		return nil
 	}
+	start := p.pos
 	p.expect("return")
 
 	var res ExpressionNode
 	if !p.next().Matches(";") {
 		res = p.parseExpression()
 		if res == nil {
-			panic("return expected expression or semi-colon")
+			p.error(api.NewParseError("semi-colon or expression", start, p.pos))
 		}
 	}
 
@@ -275,16 +308,18 @@ func (p *parser) parseIfElseChain() StatementNode {
 		return nil
 	}
 
+	start := p.pos
+
 	// the first if.
 	p.expect("if")
 	expr := p.parseExpression()
 	if expr == nil {
-		panic("wanted condition")
+		p.error(api.NewParseError("condition", start, p.pos))
 	}
 
 	block := p.parseStatBlock()
 	if block == nil {
-		panic("expected block after condition")
+		p.error(api.NewParseError("block after condition", start, p.pos))
 	}
 
 	var elseBlock []StatementNode
@@ -297,12 +332,12 @@ func (p *parser) parseIfElseChain() StatementNode {
 			p.expect("if")
 			cond := p.parseExpression()
 			if cond == nil {
-				panic("expected cond in else if")
+				p.error(api.NewParseError("condition in else if", start, p.pos))
 			}
 
 			body := p.parseStatBlock()
 			if body == nil {
-				panic("else if expected block")
+				p.error(api.NewParseError("block after else if", start, p.pos))
 			}
 			elses = append(elses, NewElseIfStatement(cond, body))
 		} else {
@@ -312,7 +347,7 @@ func (p *parser) parseIfElseChain() StatementNode {
 			p.expect("else")
 			elseBlock = p.parseStatBlock()
 			if elseBlock == nil {
-				panic("else expected block")
+				p.error(api.NewParseError("block after else", start, p.pos))
 			}
 		}
 	}
@@ -324,10 +359,12 @@ func (p *parser) parseWhileLoop() StatementNode {
 	if !p.next().Matches("while") {
 		return nil
 	}
+	start := p.pos
+
 	p.expect("while")
 	val := p.parseExpression()
 	if val == nil {
-		panic("while expects condition")
+		p.error(api.NewParseError("condition after while", start, p.pos))
 	}
 
 	var post ExpressionNode
@@ -335,7 +372,7 @@ func (p *parser) parseWhileLoop() StatementNode {
 		p.expect(";")
 		post = p.parseExpression()
 		if post == nil {
-			panic("expected expression after ; in while loop")
+			p.error(api.NewParseError("step expression in while loop", start, p.pos))
 		}
 	}
 
@@ -452,10 +489,12 @@ func (p *parser) parseUnaryExpr() ExpressionNode {
 		return nil
 	}
 
+	start := p.pos
+
 	op := p.consume()
 	right := p.parseLeft()
 	if right == nil {
-		panic("error, unary expr is null!")
+		p.error(api.NewParseError("unary expression", start, p.pos))
 	}
 
 	return NewUnaryExpression(op.Value, right)
@@ -466,6 +505,7 @@ func (p *parser) parseOperand() ExpressionNode {
 		return nil
 	}
 
+	start := p.pos
 	curr := p.next()
 
 	if curr.Matches("(") {
@@ -492,21 +532,25 @@ func (p *parser) parseOperand() ExpressionNode {
 		return nil
 
 	default:
-		panic(fmt.Sprintf("unhandled operand %s", curr))
+		p.error(api.NewUnimplementedError(curr.Value, start, p.pos))
+		return nil
 	}
 }
 
 func (p *parser) parseBuiltin() ExpressionNode {
+	start := p.pos
 	builtin := p.expectKind(Identifier)
 	p.expect("!")
 	typ := p.parseType()
 	if typ == nil {
-		panic("Expected type after builtin")
+		p.error(api.NewParseError("type in builtin", start, p.pos))
 	}
 	return NewBuiltinExpression(builtin.Value, typ)
 }
 
 func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
+	start := p.pos
+
 	var params []ExpressionNode
 
 	p.expect("(")
@@ -517,7 +561,7 @@ func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
 
 		val := p.parseExpression()
 		if val == nil {
-			panic("expected parameter in call func")
+			p.error(api.NewParseError("parameter in call expression", start, p.pos))
 		}
 		params = append(params, val)
 	}
@@ -527,10 +571,11 @@ func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
 }
 
 func (p *parser) parseIndex(left ExpressionNode) ExpressionNode {
+	start := p.pos
 	p.expect("[")
 	val := p.parseExpression()
 	if val == nil {
-		panic("expected expression in array sub")
+		p.error(api.NewParseError("expression in array index", start, p.pos))
 	}
 	p.expect("]")
 	return NewIndexExpression(left, val)
@@ -650,17 +695,19 @@ func (p *parser) parseAssign(left ExpressionNode) ExpressionNode {
 
 	// TODO check if op is valid assign op
 
+	start := p.pos
 	op := p.consume()
 
 	right := p.parseExpression()
 	if right == nil {
-		panic("assign expected expression after assignment operator")
+		p.error(api.NewParseError("expression after assignment operator", start, p.pos))
 	}
 
 	return NewAssignmentStatement(left, op.Value, right)
 }
 
 func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
+	start := p.pos
 	list := []ExpressionNode{}
 
 	list = append(list, left)
@@ -669,7 +716,7 @@ func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
 		p.expect(".")
 		val := p.parseExpression()
 		if val == nil {
-			panic("oh dear")
+			p.error(api.NewParseError("expression in dot-list", start, p.pos))
 		}
 		list = append(list, val)
 	}
@@ -708,6 +755,8 @@ func (p *parser) parseExpressionStatement() ExpressionNode {
 }
 
 func (p *parser) parseNode() ParseTreeNode {
+	start := p.pos
+
 	switch curr := p.next(); {
 	case curr.Matches("struct"):
 		return p.parseStructureDeclaration()
@@ -719,18 +768,17 @@ func (p *parser) parseNode() ParseTreeNode {
 		return p.parseFunctionDeclaration()
 	}
 
-	panic(fmt.Sprintf("unhandled %s", p.next()))
+	p.error(api.NewUnimplementedError(p.next().Value, start, p.pos))
+	return nil
 }
 
 func parseTokenStream(stream *TokenStream) (ParseTree, []api.CompilerError) {
-	p := &parser{stream.Tokens, 0}
+	p := &parser{stream.Tokens, 0, []api.CompilerError{}}
 	nodes := []ParseTreeNode{}
 	for p.hasNext() {
 		if node := p.parseNode(); node != nil {
 			nodes = append(nodes, node)
 		}
 	}
-
-	// FIXME
-	return ParseTree{nodes}, []api.CompilerError{}
+	return ParseTree{nodes}, p.errors
 }

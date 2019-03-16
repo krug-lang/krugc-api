@@ -92,6 +92,8 @@ func (b *builder) visitInstr(i ir.Instruction) {
 	case *ir.Block:
 		b.visitBlock(instr)
 
+	case *ir.Path:
+		return
 	case *ir.Return:
 		return
 	case *ir.Call:

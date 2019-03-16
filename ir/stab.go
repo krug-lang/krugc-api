@@ -12,10 +12,21 @@ func init() {
 	gob.Register(&Symbol{})
 }
 
-type SymbolValue interface{}
+type SymbolValue interface {
+	SymbolTypeName() string
+	GetType() Type
+}
 
 type Symbol struct {
 	Name front.Token
+}
+
+func (s *Symbol) GetType() Type {
+	return nil
+}
+
+func (s *Symbol) SymbolTypeName() string {
+	return "symbol"
 }
 
 func NewSymbol(name front.Token) *Symbol {
@@ -26,6 +37,14 @@ type SymbolTable struct {
 	Id      int
 	Outer   *SymbolTable
 	Symbols map[string]SymbolValue
+}
+
+func (s *SymbolTable) GetType() Type {
+	return nil
+}
+
+func (s *SymbolTable) SymbolTypeName() string {
+	return "symbol-table"
 }
 
 // Register will register the given symbol in this stab. If a
