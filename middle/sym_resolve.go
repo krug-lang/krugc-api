@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/krug-lang/krugc-api/api"
 	"github.com/krug-lang/krugc-api/ir"
 )
@@ -163,11 +162,13 @@ func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 func (s *symResolvePass) resolveFunc(fn *ir.Function) {
 	s.push(fn.Stab)
 
-	json, err := jsoniter.MarshalIndent(s.curr, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(json))
+	/*
+			json, err := jsoniter.MarshalIndent(s.curr, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(json))
+	*/
 
 	for _, instr := range fn.Body.Instr {
 		s.resolveInstr(instr)
@@ -176,7 +177,7 @@ func (s *symResolvePass) resolveFunc(fn *ir.Function) {
 	s.pop()
 }
 
-func symResolve(mod *ir.Module) []api.CompilerError {
+func symResolve(mod *ir.Module) (*ir.Module, []api.CompilerError) {
 	srp := &symResolvePass{mod, []api.CompilerError{}, nil}
 
 	for _, impl := range mod.Impls {
@@ -189,5 +190,5 @@ func symResolve(mod *ir.Module) []api.CompilerError {
 		srp.resolveFunc(fn)
 	}
 
-	return srp.errors
+	return srp.mod, srp.errors
 }

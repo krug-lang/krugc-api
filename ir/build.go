@@ -103,7 +103,18 @@ func (b *builder) buildIndexExpression(i *front.IndexExpression) Value {
 func (b *builder) buildPathExpression(p *front.PathExpression) Value {
 	var values []Value
 	for _, e := range p.Values {
-		values = append(values, b.buildExpr(e))
+		val := b.buildExpr(e)
+
+		// stupid hack to flatten the path expressions
+		// TODO(felix): fix the parser for this.
+		if path, ok := val.(*Path); ok {
+			for _, val := range path.Values {
+				values = append(values, val)
+			}
+			continue
+		}
+
+		values = append(values, val)
 	}
 	return NewPath(values)
 }

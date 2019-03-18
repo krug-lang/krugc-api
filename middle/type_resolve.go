@@ -11,25 +11,38 @@ import (
 type typeResolvePass struct {
 	mod    *ir.Module
 	errors []api.CompilerError
+	curr   *ir.SymbolTable
+}
+
+func (t *typeResolvePass) scope() *ir.SymbolTable {
+	return t.curr
+}
+
+func (t *typeResolvePass) push(s *ir.SymbolTable) {
+	t.curr = s
+}
+
+func (t *typeResolvePass) pop() {
+	t.curr = t.curr.Outer
 }
 
 func (t *typeResolvePass) error(err api.CompilerError) {
 	t.errors = append(t.errors, err)
 }
 
-func (t *typeResolvePass) resolveReferenceType(ref *ir.ReferenceType) {
+func (t *typeResolvePass) resolveReferenceType(ref *ir.ReferenceType) ir.Type {
 	// resolve the type:
 
 	// 1. primitive type?
 	// this check would have been done during buildType
 	// so this is superfluous but ok
-	if _, ok := ir.PrimitiveType[ref.Name]; ok {
-		return
+	if typ, ok := ir.PrimitiveType[ref.Name]; ok {
+		return typ
 	}
 
 	// 2. structure type?
-	if _, ok := t.mod.Structures[ref.Name]; ok {
-		return
+	if typ, ok := t.mod.Structures[ref.Name]; ok {
+		return typ
 	}
 
 	// 3. trait type?
@@ -38,26 +51,76 @@ func (t *typeResolvePass) resolveReferenceType(ref *ir.ReferenceType) {
 		Title: fmt.Sprintf("Couldn't resolve type '%s'", ref.Name),
 		Desc:  "",
 	})
+	return nil
 }
 
-func (t *typeResolvePass) resolveType(unresolvedType ir.Type) {
+func (t *typeResolvePass) resolveVia(typ ir.Type, val ir.Value) ir.Type {
+	if typ == nil {
+		// should be an identifier ?
+		iden, ok := val.(*ir.Identifier)
+		if !ok {
+			panic(fmt.Sprintf("left is %s", reflect.TypeOf(val).String()))
+		}
+
+		scope := t.scope()
+		if scope == nil {
+			panic("what zeee fuck?")
+		}
+
+		typ, ok := scope.LookupType(iden.Name.Value)
+		if !ok {
+			t.error(api.NewUnresolvedSymbol(iden.Name.Value, iden.Name.Span...))
+		}
+		return typ
+	}
+
+	switch left := typ.(type) {
+	case *ir.Structure:
+		iden, _ := val.(*ir.Identifier)
+		typ, ok := left.Fields.Data[iden.Name.Value]
+		if !ok {
+			t.error(api.NewUnresolvedSymbol(iden.Name.Value, iden.Name.Span...))
+		}
+		return typ
+
+	default:
+		t.error(api.NewUnimplementedError(reflect.TypeOf(left).String()))
+	}
+
+	return nil
+}
+
+func (t *typeResolvePass) resolvePath(p *ir.Path) {
+	var lastType ir.Type
+	for _, val := range p.Values {
+		lastType = t.resolveVia(lastType, val)
+	}
+}
+
+func (t *typeResolvePass) resolveType(unresolvedType ir.Type) ir.Type {
 	switch typ := unresolvedType.(type) {
 	case *ir.PointerType:
-		t.resolveType(typ.Base)
+		return t.resolveType(typ.Base)
+
 	case *ir.ReferenceType:
-		t.resolveReferenceType(typ)
+		return t.resolveReferenceType(typ)
+
 	case *ir.ArrayType:
-		t.resolveType(typ.Base)
+		return t.resolveType(typ.Base)
+
+	case *ir.Structure:
+		return t.resolveStructure(typ)
 
 	case *ir.IntegerType:
-		return
+		return typ
 	case *ir.FloatingType:
-		return
+		return typ
 	case *ir.VoidType:
-		return
+		return typ
 
 	default:
 		panic(fmt.Sprintf("unhandled type %s", reflect.TypeOf(typ)))
+		return nil
 	}
 }
 
@@ -89,9 +152,14 @@ func (t *typeResolvePass) resolveInstr(i ir.Instruction) {
 			t.resolveBlock(instr.Else)
 		}
 
-	// nops
 	case *ir.Path:
-		return
+		// i think this may have to go into
+		// a later pass.
+		// first pass resolves top level decls
+		// then the second pass resolves the
+		// func level types?
+		// t.resolvePath(instr)
+
 	case *ir.Return:
 		return
 	case *ir.Break:
@@ -112,20 +180,28 @@ func (t *typeResolvePass) resolveInstr(i ir.Instruction) {
 }
 
 func (t *typeResolvePass) resolveBlock(b *ir.Block) {
+	t.push(b.Stab)
 	for _, instr := range b.Instr {
 		t.resolveInstr(instr)
 	}
+	t.pop()
 }
 
-func (t *typeResolvePass) resolveStructure(st *ir.Structure) {
+func (t *typeResolvePass) resolveStructure(st *ir.Structure) ir.Type {
 	for _, fn := range st.Methods {
 		t.resolveFunc(fn)
 	}
 
 	for _, name := range st.Fields.Order {
 		typ, _ := st.Fields.Data[name.Value]
-		t.resolveType(typ)
+
+		// set the field type to the newly
+		// resolved type
+		resolved := t.resolveType(typ)
+		st.Fields.Data[name.Value] = resolved
 	}
+
+	return st
 }
 
 func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
@@ -135,11 +211,17 @@ func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
 	}
 
 	t.resolveType(fn.ReturnType)
-	t.resolveBlock(fn.Body)
+
+	t.push(fn.Stab)
+	for _, instr := range fn.Body.Instr {
+		t.resolveInstr(instr)
+	}
+	t.pop()
 }
 
-func typeResolve(mod *ir.Module) []api.CompilerError {
-	trp := &typeResolvePass{mod, []api.CompilerError{}}
+func typeResolve(mod *ir.Module) (*ir.Module, []api.CompilerError) {
+	trp := &typeResolvePass{mod, []api.CompilerError{}, nil}
+	trp.push(mod.Root)
 
 	for _, impl := range mod.Impls {
 		structure, ok := mod.GetStructure(impl.Name.Value)
@@ -164,5 +246,5 @@ func typeResolve(mod *ir.Module) []api.CompilerError {
 		trp.resolveFunc(fn)
 	}
 
-	return trp.errors
+	return trp.mod, trp.errors
 }

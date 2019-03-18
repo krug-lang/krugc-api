@@ -36,7 +36,18 @@ func NewSymbol(name front.Token) *Symbol {
 type SymbolTable struct {
 	Id      int
 	Outer   *SymbolTable
+	Types   map[string]Type
 	Symbols map[string]SymbolValue
+}
+
+func (s *SymbolTable) RegisterType(name string, t Type) {
+	s.Types[name] = t
+}
+
+func (s *SymbolTable) LookupType(name string) (Type, bool) {
+	typ, ok := s.Types[name]
+	// TODO look in outer scope?
+	return typ, ok
 }
 
 func (s *SymbolTable) GetType() Type {
@@ -77,5 +88,6 @@ func NewSymbolTable(outer *SymbolTable) *SymbolTable {
 		Id:      rand.Intn(30000),
 		Outer:   outer,
 		Symbols: map[string]SymbolValue{},
+		Types:   map[string]Type{},
 	}
 }

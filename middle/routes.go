@@ -20,7 +20,7 @@ import (
 		check function params
 */
 
-func TypeResolve(c *gin.Context) {
+func BuildType(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
@@ -31,12 +31,19 @@ func TypeResolve(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	errors := typeResolve(irMod)
+	typedMod, errs := declType(irMod)
+
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&typedMod); err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   []byte{},
-		Errors: errors,
+		Data:   buff.Bytes(),
+		Errors: errs,
 	}
+
 	c.JSON(200, &resp)
 }
 
@@ -72,6 +79,31 @@ func BuildScope(c *gin.Context) {
 	c.JSON(200, &resp)
 }
 
+func TypeResolve(c *gin.Context) {
+	var krugReq api.KrugRequest
+	if err := c.BindJSON(&krugReq); err != nil {
+		panic(err)
+	}
+
+	var irMod *ir.Module
+	pCache := bytes.NewBuffer(krugReq.Data)
+	decCache := gob.NewDecoder(pCache)
+	decCache.Decode(&irMod)
+
+	mod, errors := typeResolve(irMod)
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&mod); err != nil {
+		panic(err)
+	}
+
+	resp := api.KrugResponse{
+		Data:   buff.Bytes(),
+		Errors: errors,
+	}
+	c.JSON(200, &resp)
+}
+
 func SymbolResolve(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
@@ -83,10 +115,16 @@ func SymbolResolve(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	errors := symResolve(irMod)
+	mod, errors := symResolve(irMod)
+
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&mod); err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   []byte{},
+		Data:   buff.Bytes(),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
