@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -60,8 +61,14 @@ func main() {
 		b.POST("/gen", back.Gen)
 	}
 
+	port := "8001"
+	if p := os.Getenv("PORT"); p != "" {
+		fmt.Println("Running on port", p)
+		port = p
+	}
+
 	s := &http.Server{
-		Addr:           "localhost:8001",
+		Addr:           fmt.Sprintf("localhost:%s", port),
 		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
