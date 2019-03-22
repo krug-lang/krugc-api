@@ -6,5 +6,5 @@
       "compiler"
     ],
     "website": "http://krug-lang.org",
-    "repository": "http://github.com/krug-lang/krugc-api"
+    "repository": "http://github.com/krug-lang/server"
   }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/ir"
+	"github.com/krug-lang/server/api"
+	"github.com/krug-lang/server/ir"
 )
 
 type typeResolvePass struct {
@@ -219,9 +219,13 @@ func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
 	t.pop()
 }
 
-func typeResolve(mod *ir.Module) (*ir.Module, []api.CompilerError) {
+func typeResolve(mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
 	trp := &typeResolvePass{mod, []api.CompilerError{}, nil}
-	trp.push(mod.Root)
+
+	// todo get this from the scope map
+	// trp.push(mod.Root)
+
+	tm := ir.NewTypeMap()
 
 	for _, impl := range mod.Impls {
 		structure, ok := mod.GetStructure(impl.Name.Value)
@@ -246,5 +250,5 @@ func typeResolve(mod *ir.Module) (*ir.Module, []api.CompilerError) {
 		trp.resolveFunc(fn)
 	}
 
-	return trp.mod, trp.errors
+	return tm, trp.errors
 }

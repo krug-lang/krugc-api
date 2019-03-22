@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"math/rand"
 
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/krug-lang/server/front"
 )
 
 func init() {

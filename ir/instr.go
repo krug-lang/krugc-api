@@ -3,7 +3,7 @@ package ir
 import (
 	"encoding/gob"
 
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/krug-lang/server/front"
 )
 
 func init() {

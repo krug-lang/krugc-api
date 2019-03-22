@@ -1,4 +1,4 @@
-module github.com/krug-lang/krugc-api
+module github.com/krug-lang/server
 
 go 1.12
 

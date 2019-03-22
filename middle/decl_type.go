@@ -3,8 +3,8 @@ package middle
 import (
 	"reflect"
 
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/ir"
+	"github.com/krug-lang/server/api"
+	"github.com/krug-lang/server/ir"
 )
 
 type decl struct {
@@ -86,23 +86,27 @@ func (d *decl) visitBlock(b *ir.Block) {
 	d.pop()
 }
 
-func declType(mod *ir.Module) (*ir.Module, []api.CompilerError) {
+func declType(scopeMap *ir.ScopeMap, mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
 	d := &decl{
 		mod,
 		[]api.CompilerError{},
 		nil,
 	}
 
-	d.push(mod.Root)
+	tm := ir.NewTypeMap()
 
 	for _, name := range mod.FunctionOrder {
 		fn, _ := mod.Functions[name.Value]
-		d.push(fn.Stab)
+
+		fnStab := scopeMap.Functions[name.Value]
+		d.push(fnStab)
+
 		for _, instr := range fn.Body.Instr {
 			d.visitInstr(instr)
 		}
+
 		d.pop()
 	}
 
-	return d.mod, d.errors
+	return tm, d.errors
 }
