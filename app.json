@@ -1,6 +1,6 @@
 {
-    "name": "krugc-api",
-    "description": "krug compiler as a service",
+    "name": "krug-serv",
+    "description": "krug compiler server",
     "keywords": [
       "krug",
       "compiler"
