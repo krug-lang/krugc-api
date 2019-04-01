@@ -3,7 +3,7 @@ package front
 import (
 	"strings"
 
-	"github.com/krug-lang/krugc-api/api"
+	"github.com/hugobrains/krug-serv/api"
 )
 
 var BadToken Token

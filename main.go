@@ -7,10 +7,10 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/krugc-api/back"
-	"github.com/krug-lang/krugc-api/front"
-	"github.com/krug-lang/krugc-api/ir"
-	"github.com/krug-lang/krugc-api/middle"
+	"github.com/hugobrains/krug-serv/back"
+	"github.com/hugobrains/krug-serv/front"
+	"github.com/hugobrains/krug-serv/ir"
+	"github.com/hugobrains/krug-serv/middle"
 )
 
 func main() {

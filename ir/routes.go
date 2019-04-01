@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/krug-serv/front"
 )
 
 // Build takes the given []ParseTree's

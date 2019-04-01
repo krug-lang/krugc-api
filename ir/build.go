@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/krug-serv/front"
 )
 
 type builder struct {

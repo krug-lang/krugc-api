@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/krugc-api/api"
+	"github.com/hugobrains/krug-serv/api"
 )
 
 func Parse(c *gin.Context) {

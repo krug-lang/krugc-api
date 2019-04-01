@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/ir"
+	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/krug-serv/ir"
 )
 
 type symResolvePass struct {

@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/ir"
+	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/krug-serv/ir"
 )
 
 /*
