@@ -1,8 +1,7 @@
 package middle
 
 import (
-	"bytes"
-	"encoding/gob"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/krug-serv/api"
@@ -31,20 +30,21 @@ func BuildType(c *gin.Context) {
 		Module   *ir.Module
 	}
 
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&payload)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&payload)
+	*/
 
 	typedMod, errs := declType(payload.ScopeMap, payload.Module)
 
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&typedMod); err != nil {
+	jsonTypedMod, err := jsoniter.MarshalIndent(typedMod, "", "  ")
+	if err != nil {
 		panic(err)
 	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonTypedMod),
 		Errors: errs,
 	}
 
@@ -62,21 +62,21 @@ func BuildScope(c *gin.Context) {
 	}
 
 	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&irMod)
+	*/
 
 	scopeMap, errs := buildScope(irMod)
 
-	// write new module with built scopes.
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&scopeMap); err != nil {
+	jsonScopeMap, err := jsoniter.MarshalIndent(scopeMap, "", "  ")
+	if err != nil {
 		panic(err)
 	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonScopeMap),
 		Errors: errs,
 	}
 

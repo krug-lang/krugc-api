@@ -10,10 +10,10 @@ func init() {
 }
 
 type KrugResponse struct {
-	Data   []byte
-	Errors []CompilerError
+	Data   string          `json:"data"`
+	Errors []CompilerError `json:"errors"`
 }
 
 type KrugRequest struct {
-	Data []byte
+	Data string `json:"data"`
 }

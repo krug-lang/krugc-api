@@ -1,10 +1,10 @@
 package ir
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"reflect"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/krug-serv/api"
@@ -20,18 +20,21 @@ func Build(c *gin.Context) {
 	}
 
 	var trees []front.ParseTree
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&trees)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&trees)
+	*/
 
 	irModule, errors := build(trees)
 
-	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	enc.Encode(&irModule)
+	jsonIrModule, err := jsoniter.MarshalIndent(irModule, "", "  ")
+	if err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonIrModule),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)

@@ -1,8 +1,7 @@
 package front
 
 import (
-	"bytes"
-	"encoding/gob"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/krug-serv/api"
@@ -15,18 +14,22 @@ func Parse(c *gin.Context) {
 	}
 
 	var stream TokenStream
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&stream)
+	/*
+		var stream TokenStream
+		pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&stream)
+	*/
 
 	parseTree, errors := parseTokenStream(&stream)
 
-	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	enc.Encode(&parseTree)
+	jsonParseTree, err := jsoniter.MarshalIndent(parseTree, "", "  ")
+	if err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonParseTree),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
@@ -39,20 +42,25 @@ func Tokenize(c *gin.Context) {
 	}
 
 	var sourceFile KrugCompilationUnit
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&sourceFile)
+	sourceFile.Code = string(krugReq.Data)
+
+	/*
+		pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&sourceFile)
+	*/
 
 	tokens, errors := tokenizeInput(sourceFile.Code)
 
 	stream := TokenStream{tokens}
 
-	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	enc.Encode(&stream)
+	jsonResp, err := jsoniter.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonResp),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)

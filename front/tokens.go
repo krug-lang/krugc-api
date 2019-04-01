@@ -56,5 +56,5 @@ func NewToken(lexeme string, kind TokenType, start, end int) Token {
 }
 
 type TokenStream struct {
-	Tokens []Token
+	Tokens []Token `json:"tokens"`
 }

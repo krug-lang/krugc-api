@@ -1,12 +1,10 @@
 package middle
 
 import (
-	"bytes"
-	"encoding/gob"
-
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/krug-serv/api"
 	"github.com/hugobrains/krug-serv/ir"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func TypeResolve(c *gin.Context) {
@@ -16,19 +14,21 @@ func TypeResolve(c *gin.Context) {
 	}
 
 	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&irMod)
+	*/
 
 	typeMap, errors := typeResolve(irMod)
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&typeMap); err != nil {
+
+	jsonIrModule, err := jsoniter.MarshalIndent(typeMap, "", "  ")
+	if err != nil {
 		panic(err)
 	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonIrModule),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
@@ -41,20 +41,21 @@ func SymbolResolve(c *gin.Context) {
 	}
 
 	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&irMod)
+	*/
 
 	mod, errors := symResolve(irMod)
 
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&mod); err != nil {
+	jsonMod, err := jsoniter.MarshalIndent(mod, "", "  ")
+	if err != nil {
 		panic(err)
 	}
 
 	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
+		Data:   string(jsonMod),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)

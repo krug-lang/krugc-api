@@ -1,11 +1,11 @@
 package back
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"reflect"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/krug-serv/api"
@@ -19,16 +19,23 @@ func Gen(c *gin.Context) {
 	}
 
 	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
+	/*
+			pCache := bytes.NewBuffer(krugReq.Data)
+		decCache := gob.NewDecoder(pCache)
+		decCache.Decode(&irMod)
+	*/
 
 	// for now we just return the
 	// bytes for one big old c file.
 	monoFile, errors := codegen(irMod)
 
+	jsonMonoFile, err := jsoniter.MarshalIndent(monoFile, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
 	resp := api.KrugResponse{
-		Data:   monoFile,
+		Data:   string(jsonMonoFile),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
