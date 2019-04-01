@@ -1,5 +1,10 @@
-# krugc-api
-The Krug compiler server.
+# krug-serv
+This repository is the compiler for Krug. Most of the work is done here, the
+frontends job is simply to talk to this server. 
+
+You will need both the krug [frontend](//github.com/hugobrains/krug), and
+this server - running locally or on the cloud somewhere - for you to 
+compile krug programs.
 
 ## how it works
 The compilers stages are cut into routes of a HTTP server. The server
@@ -14,12 +19,18 @@ a text-editor could send over source files to lexically analyze via.
 the exposed API.
 
 ## overview
+The language itself is not so much the focus of this project. You can see
+some code examples in the [tests](//github.com/hugobrains/krug/tree/master/tests) directory.
 
-The Krug programming language:
+For a brief overview, Krug is:
 
-* compiles to C;
-* is garbage collected;
-* has type inference;
+* compiled (to C language - eventually LLVM);
+* statically typed;
+* optional? garbage collection;
 * has no generics;
+* includes simple type-inference;
+
+It's based loosely on Rust, Go, and C.
 
 ## license
+MIT, see the [LICENSE](/LICENSE) for more information.
