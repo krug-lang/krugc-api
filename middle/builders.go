@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/krugc-api/api"
-	"github.com/krug-lang/krugc-api/ir"
+	"github.com/krug-lang/server/api"
+	"github.com/krug-lang/server/ir"
 )
 
 /*
@@ -26,12 +26,16 @@ func BuildType(c *gin.Context) {
 		panic(err)
 	}
 
-	var irMod *ir.Module
+	var payload struct {
+		ScopeMap *ir.ScopeMap
+		Module   *ir.Module
+	}
+
 	pCache := bytes.NewBuffer(krugReq.Data)
 	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
+	decCache.Decode(&payload)
 
-	typedMod, errs := declType(irMod)
+	typedMod, errs := declType(payload.ScopeMap, payload.Module)
 
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
@@ -62,12 +66,12 @@ func BuildScope(c *gin.Context) {
 	decCache := gob.NewDecoder(pCache)
 	decCache.Decode(&irMod)
 
-	scopedMod, errs := buildScope(irMod)
+	scopeMap, errs := buildScope(irMod)
 
 	// write new module with built scopes.
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&scopedMod); err != nil {
+	if err := encoder.Encode(&scopeMap); err != nil {
 		panic(err)
 	}
 
@@ -76,56 +80,5 @@ func BuildScope(c *gin.Context) {
 		Errors: errs,
 	}
 
-	c.JSON(200, &resp)
-}
-
-func TypeResolve(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
-		panic(err)
-	}
-
-	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
-
-	mod, errors := typeResolve(irMod)
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&mod); err != nil {
-		panic(err)
-	}
-
-	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
-		Errors: errors,
-	}
-	c.JSON(200, &resp)
-}
-
-func SymbolResolve(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
-		panic(err)
-	}
-
-	var irMod *ir.Module
-	pCache := bytes.NewBuffer(krugReq.Data)
-	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&irMod)
-
-	mod, errors := symResolve(irMod)
-
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-	if err := encoder.Encode(&mod); err != nil {
-		panic(err)
-	}
-
-	resp := api.KrugResponse{
-		Data:   buff.Bytes(),
-		Errors: errors,
-	}
 	c.JSON(200, &resp)
 }

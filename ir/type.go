@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/krug-lang/server/front"
 )
 
 type Type interface {

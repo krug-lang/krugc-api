@@ -1,4 +1,4 @@
-package front
+package middle
 
 import (
 	"bytes"
@@ -6,24 +6,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/krug-lang/server/api"
+	"github.com/krug-lang/server/ir"
 )
 
-func Parse(c *gin.Context) {
+func TypeResolve(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
 
-	var stream TokenStream
+	var irMod *ir.Module
 	pCache := bytes.NewBuffer(krugReq.Data)
 	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&stream)
+	decCache.Decode(&irMod)
 
-	parseTree, errors := parseTokenStream(&stream)
-
+	typeMap, errors := typeResolve(irMod)
 	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	enc.Encode(&parseTree)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&typeMap); err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
 		Data:   buff.Bytes(),
@@ -32,24 +34,24 @@ func Parse(c *gin.Context) {
 	c.JSON(200, &resp)
 }
 
-func Tokenize(c *gin.Context) {
+func SymbolResolve(c *gin.Context) {
 	var krugReq api.KrugRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
 
-	var sourceFile KrugCompilationUnit
+	var irMod *ir.Module
 	pCache := bytes.NewBuffer(krugReq.Data)
 	decCache := gob.NewDecoder(pCache)
-	decCache.Decode(&sourceFile)
+	decCache.Decode(&irMod)
 
-	tokens, errors := tokenizeInput(sourceFile.Code)
-
-	stream := TokenStream{tokens}
+	mod, errors := symResolve(irMod)
 
 	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	enc.Encode(&stream)
+	encoder := gob.NewEncoder(buff)
+	if err := encoder.Encode(&mod); err != nil {
+		panic(err)
+	}
 
 	resp := api.KrugResponse{
 		Data:   buff.Bytes(),

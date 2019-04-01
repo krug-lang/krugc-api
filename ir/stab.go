@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"math/rand"
 
-	"github.com/krug-lang/krugc-api/front"
+	"github.com/krug-lang/server/front"
 )
 
 func init() {
@@ -38,6 +38,26 @@ type SymbolTable struct {
 	Outer   *SymbolTable
 	Types   map[string]Type
 	Symbols map[string]SymbolValue
+}
+
+func (s *SymbolTable) String() string {
+	res := "{"
+
+	idx := 0
+	for _, sym := range s.Symbols {
+		if idx != 0 {
+			res += " "
+		}
+
+		switch sy := sym.(type) {
+		case *Symbol:
+			res += sy.Name.Value
+		}
+
+		idx++
+	}
+	res += "}"
+	return res
 }
 
 func (s *SymbolTable) RegisterType(name string, t Type) {
