@@ -40,6 +40,26 @@ type SymbolTable struct {
 	Symbols map[string]SymbolValue
 }
 
+func (s *SymbolTable) String() string {
+	res := "{"
+
+	idx := 0
+	for _, sym := range s.Symbols {
+		if idx != 0 {
+			res += " "
+		}
+
+		switch sy := sym.(type) {
+		case *Symbol:
+			res += sy.Name.Value
+		}
+
+		idx++
+	}
+	res += "}"
+	return res
+}
+
 func (s *SymbolTable) RegisterType(name string, t Type) {
 	s.Types[name] = t
 }

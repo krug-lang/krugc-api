@@ -21,6 +21,5 @@ The Krug programming language:
 * is garbage collected;
 * has type inference;
 * has no generics;
-* 
 
 ## license

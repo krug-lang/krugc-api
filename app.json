@@ -1,0 +1,10 @@
+{
+    "name": "krugc-api",
+    "description": "krug compiler as a service",
+    "keywords": [
+      "krug",
+      "compiler"
+    ],
+    "website": "http://krug-lang.org",
+    "repository": "http://github.com/hugobrains/krug-serv"
+  }

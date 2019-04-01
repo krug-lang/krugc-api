@@ -8,9 +8,10 @@ import (
 )
 
 type decl struct {
-	mod    *ir.Module
-	errors []api.CompilerError
-	curr   *ir.SymbolTable
+	mod      *ir.Module
+	scopeMap *ir.ScopeMap
+	errors   []api.CompilerError
+	curr     *ir.SymbolTable
 }
 
 func (d *decl) error(e api.CompilerError) {
@@ -79,30 +80,35 @@ func (d *decl) visitInstr(i ir.Instruction) {
 }
 
 func (d *decl) visitBlock(b *ir.Block) {
-	d.push(b.Stab)
+	// TODO restore the stab from the scope map
 	for _, instr := range b.Instr {
 		d.visitInstr(instr)
 	}
-	d.pop()
+	// POP
 }
 
-func declType(mod *ir.Module) (*ir.Module, []api.CompilerError) {
+func declType(scopeMap *ir.ScopeMap, mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
 	d := &decl{
 		mod,
+		scopeMap,
 		[]api.CompilerError{},
 		nil,
 	}
 
-	d.push(mod.Root)
+	tm := ir.NewTypeMap()
 
 	for _, name := range mod.FunctionOrder {
 		fn, _ := mod.Functions[name.Value]
-		d.push(fn.Stab)
+
+		fnStab := scopeMap.Functions[name.Value]
+		d.push(fnStab)
+
 		for _, instr := range fn.Body.Instr {
 			d.visitInstr(instr)
 		}
+
 		d.pop()
 	}
 
-	return d.mod, d.errors
+	return tm, d.errors
 }

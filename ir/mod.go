@@ -14,7 +14,6 @@ func init() {
 
 type Module struct {
 	Name string
-	Root *SymbolTable
 
 	Structures     map[string]*Structure
 	StructureOrder []front.Token
@@ -29,7 +28,6 @@ type Module struct {
 func NewModule(name string) *Module {
 	return &Module{
 		name,
-		nil,
 		map[string]*Structure{},
 		[]front.Token{},
 		map[string]*Function{},

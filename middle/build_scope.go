@@ -107,11 +107,6 @@ func (b *builder) visitInstr(i ir.Instruction) {
 }
 
 func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
-	ok := b.curr.Register(fn.Name.Value, ir.NewSymbol(fn.Name))
-	if !ok {
-		b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
-	}
-
 	res := b.pushStab(fn.Name.Value)
 
 	// reset the block count
@@ -131,20 +126,23 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 		b.visitInstr(instr)
 	}
 
-	b.popStab()
 	return res
 }
 
-func (b *builder) visitStructure(s *ir.Structure) {
+func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
+	stab := b.pushStab(s.Name.Value)
+
 	for _, name := range s.Fields.Order {
-		ok := b.curr.Register(name.Value, ir.NewSymbol(name))
+		ok := stab.Register(name.Value, ir.NewSymbol(name))
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
 		}
 	}
+
+	return stab
 }
 
-func buildScope(mod *ir.Module) (*ir.Module, []api.CompilerError) {
+func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 	b := &builder{
 		mod,
 		nil,
@@ -152,36 +150,40 @@ func buildScope(mod *ir.Module) (*ir.Module, []api.CompilerError) {
 		0,
 	}
 
-	root := b.pushStab("0_global")
+	scopeMap := ir.NewScopeMap()
 
 	// create stabs for the structs
 	for _, structure := range mod.Structures {
-		ok := root.Register(structure.Name.Value, ir.NewSymbol(structure.Name))
+		stab := b.visitStructure(structure)
+
+		ok := scopeMap.RegisterStructure(structure.Name.Value, stab)
 		if !ok {
 			b.error(api.NewSymbolError(structure.Name.Value, structure.Name.Span...))
 		}
-
-		structure.Stab = b.pushStab(structure.Name.Value)
-		b.visitStructure(structure)
-		b.popStab()
 	}
 
 	// create stabs for the functions
 	for _, fn := range mod.Functions {
-		fn.Stab = b.visitFunc(fn)
-	}
+		stab := b.visitFunc(fn)
 
-	// create stabs for the impls
-	for name, impl := range mod.Impls {
-		impl.Stab = b.pushStab(name)
-
-		for _, fn := range impl.Methods {
-			fn.Stab = b.visitFunc(fn)
+		ok := scopeMap.RegisterFunction(fn.Name.Value, stab)
+		if !ok {
+			b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
 		}
-
-		b.popStab()
 	}
 
-	b.mod.Root = root
-	return b.mod, b.errs
+	/*
+		// create stabs for the impls
+		for name, impl := range mod.Impls {
+			impl.Stab = b.pushStab(name)
+
+			for _, fn := range impl.Methods {
+				fn.Stab = b.visitFunc(fn)
+			}
+
+			b.popStab()
+		}
+	*/
+
+	return scopeMap, b.errs
 }
