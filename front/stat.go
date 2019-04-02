@@ -121,26 +121,26 @@ type ImplDeclaration struct {
 type ParseTreeNode struct {
 	Kind StatementType
 
-	LetStatementNode        *LetStatementNode
-	MutableStatementNode    *MutableStatementNode
-	ReturnStatementNode     *ReturnStatementNode
-	ExpressionStatementNode *ExpressionNode
+	LetStatementNode        *LetStatementNode     `json:"letStatement,omitempty"`
+	MutableStatementNode    *MutableStatementNode `json:"mutStatement,omitempty"`
+	ReturnStatementNode     *ReturnStatementNode  `json:"retStatement,omitempty"`
+	ExpressionStatementNode *ExpressionNode       `json:"exprStatement,omitempty"`
 
 	// CONSTR
 
-	WhileLoopNode *WhileLoopNode
-	LoopNode      *LoopNode
-	ElseIfNode    *ElseIfNode
-	BlockNode     *BlockNode
-	IfNode        *IfNode
+	WhileLoopNode *WhileLoopNode `json:"whileNode,omitempty"`
+	LoopNode      *LoopNode      `json:"loopNode,omitempty"`
+	ElseIfNode    *ElseIfNode    `json:"elseIfNode,omitempty"`
+	BlockNode     *BlockNode     `json:"blockNode,omitempty"`
+	IfNode        *IfNode        `json:"ifNode,omitempty"`
 
 	// DECL
 
-	StructureDeclaration *StructureDeclaration
-	TraitDeclaration     *TraitDeclaration
-	ImplDeclaration      *ImplDeclaration
+	StructureDeclaration *StructureDeclaration `json:"structureDecl,omitempty"`
+	TraitDeclaration     *TraitDeclaration     `json:"traitDecl,omitempty"`
+	ImplDeclaration      *ImplDeclaration      `json:"implDecl,omitempty"`
 
-	NamedType                    *NamedType
-	FunctionPrototypeDeclaration *FunctionPrototypeDeclaration
-	FunctionDeclaration          *FunctionDeclaration
+	NamedType                    *NamedType                    `json:"namedType,omitempty"`
+	FunctionPrototypeDeclaration *FunctionPrototypeDeclaration `json:"funcProtoDecl,omitempty"`
+	FunctionDeclaration          *FunctionDeclaration          `json:"funcDecl,omitempty"`
 }
