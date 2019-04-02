@@ -19,13 +19,7 @@ func Build(c *gin.Context) {
 		panic(err)
 	}
 
-	var trees []front.ParseTree
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&trees)
-	*/
-
+	var trees [][]*front.ParseTreeNode
 	irModule, errors := build(trees)
 
 	jsonIrModule, err := jsoniter.MarshalIndent(irModule, "", "  ")
@@ -343,7 +337,7 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 	return fn
 }
 
-func (b *builder) buildTree(m *Module, tree front.ParseTree) {
+func (b *builder) buildTree(m *Module, nodes []*front.ParseTreeNode) {
 	structureNodes := []*front.StructureDeclaration{}
 	implNodes := []*front.ImplDeclaration{}
 
@@ -351,7 +345,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	// all the types into arrays then process the arrays.
 
 	// declare all structures, impls, exist.
-	for _, n := range tree.Nodes {
+	for _, n := range nodes {
 		switch n.Kind {
 		case front.StructureDeclStatement:
 			struc := n.StructureDeclaration
@@ -406,7 +400,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	// i.e. declare then define.
 
 	// then we do all the functions
-	for _, n := range tree.Nodes {
+	for _, n := range nodes {
 		switch n.Kind {
 		case front.FunctionDeclStatement:
 			f := b.buildFunc(n.FunctionDeclaration)
@@ -415,7 +409,7 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 	}
 }
 
-func build(trees []front.ParseTree) (*Module, []api.CompilerError) {
+func build(trees [][]*front.ParseTreeNode) (*Module, []api.CompilerError) {
 	module := NewModule("main")
 
 	b := newBuilder(module)

@@ -917,7 +917,7 @@ func (p *parser) parseNode() *ParseTreeNode {
 	return res
 }
 
-func parseTokenStream(stream []Token) (ParseTree, []api.CompilerError) {
+func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &parser{stream, 0, []api.CompilerError{}}
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
@@ -925,5 +925,5 @@ func parseTokenStream(stream []Token) (ParseTree, []api.CompilerError) {
 			nodes = append(nodes, node)
 		}
 	}
-	return ParseTree{nodes}, p.errors
+	return nodes, p.errors
 }

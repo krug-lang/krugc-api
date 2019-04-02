@@ -4,21 +4,21 @@ import (
 	"math/big"
 )
 
-type ConstantNodeType int
+type ConstantNodeType string
 
 const (
-	VariableReference ConstantNodeType = iota
-	IntegerConstant
-	FloatingConstant
-	StringConstant
+	VariableReference ConstantNodeType = "variableRefConst"
+	IntegerConstant                    = "integerConst"
+	FloatingConstant                   = "floatingConst"
+	StringConstant                     = "stringConst"
 )
 
 type ConstantNode struct {
 	Kind                  ConstantNodeType
-	VariableReferenceNode *VariableReferenceNode
-	IntegerConstantNode   *IntegerConstantNode
-	FloatingConstantNode  *FloatingConstantNode
-	StringConstantNode    *StringConstantNode
+	VariableReferenceNode *VariableReferenceNode `json:"variableRefConst,omitempty"`
+	IntegerConstantNode   *IntegerConstantNode   `json:"integerConst,omitempty"`
+	FloatingConstantNode  *FloatingConstantNode  `json:"floatingConst,omitempty"`
+	StringConstantNode    *StringConstantNode    `json:"stringConst,omitempty"`
 }
 
 type VariableReferenceNode struct {

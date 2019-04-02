@@ -1,19 +1,19 @@
 package front
 
-type ExpressionType int
+type ExpressionType string
 
 const (
-	BuiltinExpression ExpressionType = iota
-	VariableExpression
-	LiteralExpression
-	UnaryExpression
-	BinaryExpression
-	Grouping
-	IndexExpression
-	CallExpression
-	PathExpression
-	AssignStatement
-	ConstantExpression
+	BuiltinExpression  ExpressionType = "builtinExpr"
+	VariableExpression                = "variableExpr"
+	LiteralExpression                 = "literalExpr"
+	UnaryExpression                   = "unaryExpr"
+	BinaryExpression                  = "binaryExpr"
+	Grouping                          = "groupingExpr"
+	IndexExpression                   = "indexExpr"
+	CallExpression                    = "callExpr"
+	PathExpression                    = "pathExpr"
+	AssignStatement                   = "assignExpr"
+	ConstantExpression                = "constExpr"
 )
 
 type BuiltinExpressionNode struct {
@@ -58,15 +58,15 @@ type AssignStatementNode struct {
 type ExpressionNode struct {
 	Kind ExpressionType
 
-	BuiltinExpressionNode  *BuiltinExpressionNode
-	VariableExpressionNode *VariableExpressionNode
-	LiteralExpressionNode  *LiteralExpressionNode
-	UnaryExpressionNode    *UnaryExpressionNode
-	BinaryExpressionNode   *BinaryExpressionNode
-	GroupingNode           *GroupingNode
-	IndexExpressionNode    *IndexExpressionNode
-	CallExpressionNode     *CallExpressionNode
-	PathExpressionNode     *PathExpressionNode
-	ConstantNode           *ConstantNode
-	AssignStatementNode    *AssignStatementNode
+	BuiltinExpressionNode  *BuiltinExpressionNode  `json:"builtinExpr,omitempty"`
+	VariableExpressionNode *VariableExpressionNode `json:"variableExpr,omitempty"`
+	LiteralExpressionNode  *LiteralExpressionNode  `json:"literalExpr,omitempty"`
+	UnaryExpressionNode    *UnaryExpressionNode    `json:"unaryExpr,omitempty"`
+	BinaryExpressionNode   *BinaryExpressionNode   `json:"binaryExpr,omitempty"`
+	GroupingNode           *GroupingNode           `json:"groupingExpr,omitempty"`
+	IndexExpressionNode    *IndexExpressionNode    `json:"indexExpr,omitempty"`
+	CallExpressionNode     *CallExpressionNode     `json:"callExpr,omitempty"`
+	PathExpressionNode     *PathExpressionNode     `json:"pathExpr,omitempty"`
+	ConstantNode           *ConstantNode           `json:"constExpr,omitempty"`
+	AssignStatementNode    *AssignStatementNode    `json:"assignExpr,omitempty"`
 }

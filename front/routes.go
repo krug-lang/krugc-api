@@ -18,22 +18,15 @@ func Parse(c *gin.Context) {
 		panic(err)
 	}
 
-	/*
-		var stream TokenStream
-		pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&stream)
-	*/
+	nodes, errors := parseTokenStream(stream)
 
-	parseTree, errors := parseTokenStream(stream)
-
-	jsonParseTree, err := jsoniter.MarshalIndent(parseTree, "", "  ")
+	jsonNodes, err := jsoniter.MarshalIndent(nodes, "", "  ")
 	if err != nil {
 		panic(err)
 	}
 
 	resp := api.KrugResponse{
-		Data:   string(jsonParseTree),
+		Data:   string(jsonNodes),
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
