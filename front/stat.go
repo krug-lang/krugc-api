@@ -1,27 +1,27 @@
 package front
 
-type StatementType int
+type StatementType string
 
 const (
-	LetStatement StatementType = iota
-	MutableStatement
-	ReturnStatement
-	BlockStatement
-	NextStatement
-	BreakStatement
-	ExpressionStatement
+	LetStatement        StatementType = "letStat"
+	MutableStatement                  = "mutStat"
+	ReturnStatement                   = "retStat"
+	BlockStatement                    = "blockStat"
+	NextStatement                     = "nextStat"
+	BreakStatement                    = "breakStat"
+	ExpressionStatement               = "exprStat"
 
-	WhileLoopStatement
-	LoopStatement
-	ElseIfStatement
-	IfStatement
+	WhileLoopStatement = "whileNode"
+	LoopStatement      = "loopNode"
+	ElseIfStatement    = "elseIfNode"
+	IfStatement        = "ifNode"
 
-	NamedTypeDeclStatement
-	StructureDeclStatement
-	TraitDeclStatement
-	ImplDeclStatement
-	FunctionProtoStatement
-	FunctionDeclStatement
+	NamedTypeDeclStatement = "namedTypeDecl"
+	StructureDeclStatement = "structDecl"
+	TraitDeclStatement     = "traitDecl"
+	ImplDeclStatement      = "implDecl"
+	FunctionProtoStatement = "funcProtoDecl"
+	FunctionDeclStatement  = "funcDecl"
 )
 
 type NamedType struct {
@@ -140,7 +140,7 @@ type ParseTreeNode struct {
 	TraitDeclaration     *TraitDeclaration     `json:"traitDecl,omitempty"`
 	ImplDeclaration      *ImplDeclaration      `json:"implDecl,omitempty"`
 
-	NamedType                    *NamedType                    `json:"namedType,omitempty"`
+	NamedType                    *NamedType                    `json:"namedTypeDecl,omitempty"`
 	FunctionPrototypeDeclaration *FunctionPrototypeDeclaration `json:"funcProtoDecl,omitempty"`
 	FunctionDeclaration          *FunctionDeclaration          `json:"funcDecl,omitempty"`
 }
