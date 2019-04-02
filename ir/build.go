@@ -53,19 +53,19 @@ func newBuilder(mod *Module) *builder {
 	return &builder{mod, []api.CompilerError{}}
 }
 
-func (b *builder) buildUnresolvedType(u *front.UnresolvedType) Type {
+func (b *builder) buildUnresolvedType(u *front.UnresolvedTypeNode) Type {
 	if t, ok := PrimitiveType[u.Name]; ok {
 		return t
 	}
 	return NewReferenceType(u.Name)
 }
 
-func (b *builder) buildPointerType(p *front.PointerType) Type {
+func (b *builder) buildPointerType(p *front.PointerTypeNode) Type {
 	base := b.buildType(p.Base)
 	return NewPointerType(base)
 }
 
-func (b *builder) buildArrayType(p *front.ArrayType) Type {
+func (b *builder) buildArrayType(p *front.ArrayTypeNode) Type {
 	// TODO should be constant expr.
 	size := b.buildExpr(p.Size)
 
@@ -73,16 +73,16 @@ func (b *builder) buildArrayType(p *front.ArrayType) Type {
 	return NewArrayType(base, size)
 }
 
-func (b *builder) buildType(n front.TypeNode) Type {
-	switch node := n.(type) {
-	case *front.UnresolvedType:
-		return b.buildUnresolvedType(node)
+func (b *builder) buildType(node *front.TypeNode) Type {
+	switch node.Kind {
+	case front.UnresolvedType:
+		return b.buildUnresolvedType(node.UnresolvedTypeNode)
 
-	case *front.PointerType:
-		return b.buildPointerType(node)
+	case front.PointerType:
+		return b.buildPointerType(node.PointerTypeNode)
 
-	case *front.ArrayType:
-		return b.buildArrayType(node)
+	case front.ArrayType:
+		return b.buildArrayType(node.ArrayTypeNode)
 
 	default:
 		panic(fmt.Sprintf("unimplemented type %s", reflect.TypeOf(node)))
@@ -96,27 +96,27 @@ func (b *builder) declareStructure(node *front.StructureDeclaration) *Structure 
 	return NewStructure(node.Name, fields)
 }
 
-func (b *builder) buildBinaryExpr(e *front.BinaryExpression) *BinaryExpression {
+func (b *builder) buildBinaryExpr(e *front.BinaryExpressionNode) *BinaryExpression {
 	lh := b.buildExpr(e.LHand)
 	rh := b.buildExpr(e.RHand)
 	return NewBinaryExpression(lh, e.Operator, rh)
 }
 
-func (b *builder) buildUnaryExpr(u *front.UnaryExpression) *UnaryExpression {
+func (b *builder) buildUnaryExpr(u *front.UnaryExpressionNode) *UnaryExpression {
 	val := b.buildExpr(u.Value)
 	return NewUnaryExpression(u.Operator, val)
 }
 
-func (b *builder) buildGrouping(g *front.Grouping) *Grouping {
+func (b *builder) buildGrouping(g *front.GroupingNode) *Grouping {
 	val := b.buildExpr(g.Value)
 	return NewGrouping(val)
 }
 
-func (b *builder) buildBuiltin(e *front.BuiltinExpression) Value {
+func (b *builder) buildBuiltin(e *front.BuiltinExpressionNode) Value {
 	return NewBuiltin(e.Name, b.buildType(e.Type))
 }
 
-func (b *builder) buildCallExpression(e *front.CallExpression) Value {
+func (b *builder) buildCallExpression(e *front.CallExpressionNode) Value {
 	left := b.buildExpr(e.Left)
 	var params []Value
 	for _, p := range e.Params {
@@ -126,13 +126,13 @@ func (b *builder) buildCallExpression(e *front.CallExpression) Value {
 	return NewCall(left, params)
 }
 
-func (b *builder) buildIndexExpression(i *front.IndexExpression) Value {
+func (b *builder) buildIndexExpression(i *front.IndexExpressionNode) Value {
 	left := b.buildExpr(i.Left)
 	sub := b.buildExpr(i.Value)
 	return NewIndex(left, sub)
 }
 
-func (b *builder) buildPathExpression(p *front.PathExpression) Value {
+func (b *builder) buildPathExpression(p *front.PathExpressionNode) Value {
 	var values []Value
 	for _, e := range p.Values {
 		val := b.buildExpr(e)
@@ -151,43 +151,38 @@ func (b *builder) buildPathExpression(p *front.PathExpression) Value {
 	return NewPath(values)
 }
 
-func (b *builder) buildExpr(e front.ExpressionNode) Value {
-	switch expr := e.(type) {
-	case *front.IntegerConstant:
-		return NewIntegerValue(expr.Value)
+func (b *builder) buildConst(e *front.ConstantNode) Value {
+	return nil
+}
 
-	case *front.FloatingConstant:
-		return NewFloatingValue(expr.Value)
+func (b *builder) buildExpr(expr *front.ExpressionNode) Value {
+	switch expr.Kind {
+	case front.ConstantExpression:
+		return b.buildConst(expr.ConstantNode)
 
-	case *front.StringConstant:
-		return NewStringValue(expr.Value)
+	case front.BinaryExpression:
+		return b.buildBinaryExpr(expr.BinaryExpressionNode)
 
-	case *front.BinaryExpression:
-		return b.buildBinaryExpr(expr)
+	case front.Grouping:
+		return b.buildGrouping(expr.GroupingNode)
 
-	case *front.VariableReference:
-		return NewIdentifier(expr.Name)
+	case front.BuiltinExpression:
+		return b.buildBuiltin(expr.BuiltinExpressionNode)
 
-	case *front.Grouping:
-		return b.buildGrouping(expr)
+	case front.UnaryExpression:
+		return b.buildUnaryExpr(expr.UnaryExpressionNode)
 
-	case *front.BuiltinExpression:
-		return b.buildBuiltin(expr)
+	case front.AssignStatement:
+		return b.buildAssignStat(expr.AssignStatementNode)
 
-	case *front.UnaryExpression:
-		return b.buildUnaryExpr(expr)
+	case front.CallExpression:
+		return b.buildCallExpression(expr.CallExpressionNode)
 
-	case *front.AssignStatement:
-		return b.buildAssignStat(expr).(*Assign)
+	case front.PathExpression:
+		return b.buildPathExpression(expr.PathExpressionNode)
 
-	case *front.CallExpression:
-		return b.buildCallExpression(expr)
-
-	case *front.PathExpression:
-		return b.buildPathExpression(expr)
-
-	case *front.IndexExpression:
-		return b.buildIndexExpression(expr)
+	case front.IndexExpression:
+		return b.buildIndexExpression(expr.IndexExpressionNode)
 
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", reflect.TypeOf(expr)))
@@ -195,7 +190,7 @@ func (b *builder) buildExpr(e front.ExpressionNode) Value {
 
 }
 
-func (b *builder) buildLetStat(l *front.LetStatement) Instruction {
+func (b *builder) buildLetStat(l *front.LetStatementNode) Instruction {
 	var val Value
 	if l.Value != nil {
 		val = b.buildExpr(l.Value)
@@ -218,7 +213,7 @@ func (b *builder) buildLetStat(l *front.LetStatement) Instruction {
 	return local
 }
 
-func (b *builder) buildMutStat(m *front.MutableStatement) Instruction {
+func (b *builder) buildMutStat(m *front.MutableStatementNode) Instruction {
 	var val Value
 	if m.Value != nil {
 		val = b.buildExpr(m.Value)
@@ -241,7 +236,7 @@ func (b *builder) buildMutStat(m *front.MutableStatement) Instruction {
 	return local
 }
 
-func (b *builder) buildReturnStat(ret *front.ReturnStatement) Instruction {
+func (b *builder) buildReturnStat(ret *front.ReturnStatementNode) Instruction {
 	var val Value
 	if ret.Value != nil {
 		val = b.buildExpr(ret.Value)
@@ -249,7 +244,7 @@ func (b *builder) buildReturnStat(ret *front.ReturnStatement) Instruction {
 	return NewReturn(val)
 }
 
-func (b *builder) buildWhileLoopStat(while *front.WhileLoopStatement) Instruction {
+func (b *builder) buildWhileLoopStat(while *front.WhileLoopNode) Instruction {
 	cond := b.buildExpr(while.Cond)
 	var post Value
 	if while.Post != nil {
@@ -259,22 +254,22 @@ func (b *builder) buildWhileLoopStat(while *front.WhileLoopStatement) Instructio
 	return NewWhileLoop(cond, post, body)
 }
 
-func (b *builder) buildLoopStat(loop *front.LoopStatement) Instruction {
+func (b *builder) buildLoopStat(loop *front.LoopNode) Instruction {
 	body := b.buildBlock(loop.Block)
 	return NewLoop(body)
 }
 
-func (b *builder) buildBlock(stats []front.StatementNode) *Block {
-	block := NewBlock()
-	for _, stat := range stats {
+func (b *builder) buildBlock(block *front.BlockNode) *Block {
+	res := NewBlock()
+	for _, stat := range block.Statements {
 		if st := b.buildStat(stat); st != nil {
-			block.AddInstr(st)
+			res.AddInstr(st)
 		}
 	}
-	return block
+	return res
 }
 
-func (b *builder) buildIfStat(iff *front.IfStatement) Instruction {
+func (b *builder) buildIfStat(iff *front.IfNode) Instruction {
 	cond := b.buildExpr(iff.Cond)
 	t := b.buildBlock(iff.Block)
 
@@ -293,41 +288,39 @@ func (b *builder) buildIfStat(iff *front.IfStatement) Instruction {
 	return NewIfStatement(cond, t, elses, f)
 }
 
-func (b *builder) buildAssignStat(a *front.AssignStatement) Instruction {
+func (b *builder) buildAssignStat(a *front.AssignStatementNode) Value {
 	// FIXME!
 	return NewAssign(b.buildExpr(a.LHand), a.Op, b.buildExpr(a.RHand))
 }
 
-func (b *builder) buildStat(s front.StatementNode) Instruction {
-	switch stat := s.(type) {
-	case *front.BlockNode:
-		return b.buildBlock(stat.Stats)
+func (b *builder) buildStat(stat *front.ParseTreeNode) Instruction {
+	switch stat.Kind {
+	case front.BlockStatement:
+		return b.buildBlock(stat.BlockNode)
 
-	case *front.LetStatement:
-		return b.buildLetStat(stat)
-	case *front.MutableStatement:
-		return b.buildMutStat(stat)
+	case front.LetStatement:
+		return b.buildLetStat(stat.LetStatementNode)
+	case front.MutableStatement:
+		return b.buildMutStat(stat.MutableStatementNode)
 
-	case *front.ReturnStatement:
-		return b.buildReturnStat(stat)
+	case front.ReturnStatement:
+		return b.buildReturnStat(stat.ReturnStatementNode)
 
-	case *front.BreakStatement:
+	case front.BreakStatement:
 		return NewBreak()
-	case *front.NextStatement:
+	case front.NextStatement:
 		return NewNext()
 
-	case *front.LoopStatement:
-		return b.buildLoopStat(stat)
-	case *front.WhileLoopStatement:
-		return b.buildWhileLoopStat(stat)
+	case front.LoopStatement:
+		return b.buildLoopStat(stat.LoopNode)
+	case front.WhileLoopStatement:
+		return b.buildWhileLoopStat(stat.WhileLoopNode)
 
-	case *front.IfStatement:
-		return b.buildIfStat(stat)
+	case front.IfStatement:
+		return b.buildIfStat(stat.IfNode)
 
-	case *front.AssignStatement:
-		return b.buildAssignStat(stat)
-	case front.ExpressionNode:
-		return b.buildExpr(stat)
+	case front.ExpressionStatement:
+		return b.buildExpr(stat.ExpressionStatementNode)
 
 	default:
 		panic(fmt.Sprintf("unimplemented stat! %s", reflect.TypeOf(stat)))
@@ -359,15 +352,18 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 
 	// declare all structures, impls, exist.
 	for _, n := range tree.Nodes {
-		switch node := n.(type) {
-		case *front.StructureDeclaration:
-			structureNodes = append(structureNodes, node)
-			m.RegisterStructure(b.declareStructure(node))
-		case *front.ImplDeclaration:
-			implNodes = append(implNodes, node)
-			if m.RegisterImpl(NewImpl(node.Name)) {
+		switch n.Kind {
+		case front.StructureDeclStatement:
+			struc := n.StructureDeclaration
+			structureNodes = append(structureNodes, struc)
+			m.RegisterStructure(b.declareStructure(struc))
+
+		case front.ImplDeclStatement:
+			impl := n.ImplDeclaration
+			implNodes = append(implNodes, impl)
+			if m.RegisterImpl(NewImpl(impl.Name)) {
 				b.error(api.CompilerError{
-					Title: fmt.Sprintf("Duplicate implementation for '%s'", node.Name),
+					Title: fmt.Sprintf("Duplicate implementation for '%s'", impl.Name),
 					Desc:  "...",
 				})
 			}
@@ -411,9 +407,9 @@ func (b *builder) buildTree(m *Module, tree front.ParseTree) {
 
 	// then we do all the functions
 	for _, n := range tree.Nodes {
-		switch node := n.(type) {
-		case *front.FunctionDeclaration:
-			f := b.buildFunc(node)
+		switch n.Kind {
+		case front.FunctionDeclStatement:
+			f := b.buildFunc(n.FunctionDeclaration)
 			m.RegisterFunction(f)
 		}
 	}

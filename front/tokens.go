@@ -25,7 +25,6 @@ type Token struct {
 
 func init() {
 	gob.Register(Token{})
-	gob.Register(TokenStream{})
 }
 
 // Matches returns if the tokens LEXEME
@@ -53,8 +52,4 @@ func NewToken(lexeme string, kind TokenType, start, end int) Token {
 	return Token{
 		lexeme, kind, []int{start, end},
 	}
-}
-
-type TokenStream struct {
-	Tokens []Token `json:"tokens"`
 }

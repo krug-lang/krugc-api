@@ -1,20 +1,11 @@
 package front
 
-import "fmt"
-
 type ParseTree struct {
-	Nodes []ParseTreeNode
+	Nodes []*ParseTreeNode
 }
 
 func (p ParseTree) String() string {
 	var result string
-	for _, node := range p.Nodes {
-		result += fmt.Sprintf("%s\n", node.Print())
-	}
+	// TODO
 	return result
-}
-
-type ParseTreeNode interface {
-	NodeName() string
-	Print() string
 }

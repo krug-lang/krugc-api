@@ -1,6 +1,8 @@
 package front
 
 import (
+	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/hugobrains/krug-serv/api"
@@ -61,7 +63,7 @@ func (p *parser) hasNext() bool {
 	return p.pos < len(p.toks)
 }
 
-func (p *parser) parsePointerType() *PointerType {
+func (p *parser) parsePointerType() *TypeNode {
 	start := p.pos
 	p.expect("^")
 	base := p.parseType()
@@ -69,10 +71,16 @@ func (p *parser) parsePointerType() *PointerType {
 		p.error(api.NewParseError("type after pointer", start, p.pos))
 		return nil
 	}
-	return NewPointerType(base)
+
+	return &TypeNode{
+		Kind: PointerType,
+		PointerTypeNode: &PointerTypeNode{
+			Base: base,
+		},
+	}
 }
 
-func (p *parser) parseArrayType() *ArrayType {
+func (p *parser) parseArrayType() *TypeNode {
 	start := p.pos
 
 	p.expect("[")
@@ -89,15 +97,26 @@ func (p *parser) parseArrayType() *ArrayType {
 	}
 
 	p.expect("]")
-	return NewArrayType(base, size)
+	return &TypeNode{
+		Kind: ArrayType,
+		ArrayTypeNode: &ArrayTypeNode{
+			Base: base,
+			Size: size,
+		},
+	}
 }
 
-func (p *parser) parseUnresolvedType() *UnresolvedType {
+func (p *parser) parseUnresolvedType() *TypeNode {
 	name := p.expectKind(Identifier)
-	return NewUnresolvedType(name.Value)
+	return &TypeNode{
+		Kind: UnresolvedType,
+		UnresolvedTypeNode: &UnresolvedTypeNode{
+			Name: name.Value,
+		},
+	}
 }
 
-func (p *parser) parseType() TypeNode {
+func (p *parser) parseType() *TypeNode {
 	start := p.pos
 	switch curr := p.next(); {
 	case curr.Matches("^"):
@@ -132,6 +151,8 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 		if typ == nil {
 			p.error(api.NewParseError("type", start, p.pos))
 		}
+
+		// FIXME
 		fields = append(fields, &NamedType{name, typ})
 
 		// trailing commas are enforced.
@@ -139,7 +160,10 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 	}
 	p.expect("}")
 
-	return NewStructureDeclaration(name, fields)
+	return &StructureDeclaration{
+		Name:   name,
+		Fields: fields,
+	}
 }
 
 func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
@@ -171,23 +195,25 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 	}
 	p.expect(")")
 
-	fpt := NewFunctionPrototypeDeclaration(name, args)
+	typ := p.parseType()
 
-	if typ := p.parseType(); typ != nil {
-		fpt.SetReturnType(typ)
+	return &FunctionPrototypeDeclaration{
+		Name:      name,
+		Arguments: args,
+
+		// could be nil!
+		ReturnType: typ,
 	}
-
-	return fpt
 }
 
 // mut x [ type ] [ = val ]
-func (p *parser) parseMut() StatementNode {
+func (p *parser) parseMut() *ParseTreeNode {
 	start := p.pos
 
 	p.expect("mut")
 	name := p.expectKind(Identifier)
 
-	var typ TypeNode
+	var typ *TypeNode
 	if !p.next().Matches("=") {
 		typ = p.parseType()
 		if typ == nil {
@@ -195,7 +221,7 @@ func (p *parser) parseMut() StatementNode {
 		}
 	}
 
-	var val ExpressionNode
+	var val *ExpressionNode
 	if p.next().Matches("=") {
 		p.expect("=")
 
@@ -209,17 +235,24 @@ func (p *parser) parseMut() StatementNode {
 		p.error(api.NewParseError("value or type in mut statement", start, p.pos))
 	}
 
-	return NewMutableStatement(name, typ, val)
+	return &ParseTreeNode{
+		Kind: MutableStatement,
+		MutableStatementNode: &MutableStatementNode{
+			Name:  name,
+			Type:  typ,
+			Value: val,
+		},
+	}
 }
 
 // let is a constant variable.
-func (p *parser) parseLet() StatementNode {
+func (p *parser) parseLet() *ParseTreeNode {
 	start := p.pos
 
 	p.expect("let")
 	name := p.expectKind(Identifier)
 
-	var typ TypeNode
+	var typ *TypeNode
 	if !p.next().Matches("=") {
 		typ = p.parseType()
 		if typ == nil {
@@ -227,7 +260,7 @@ func (p *parser) parseLet() StatementNode {
 		}
 	}
 
-	var value ExpressionNode
+	var value *ExpressionNode
 	if p.next().Matches("=") {
 		p.expect("=")
 		value = p.parseExpression()
@@ -235,17 +268,25 @@ func (p *parser) parseLet() StatementNode {
 			p.error(api.NewParseError("expression in let statement", start, p.pos))
 		}
 	}
-	return NewLetStatement(name, typ, value)
+
+	return &ParseTreeNode{
+		Kind: LetStatement,
+		LetStatementNode: &LetStatementNode{
+			Name:  name,
+			Type:  typ,
+			Value: value,
+		},
+	}
 }
 
-func (p *parser) parseReturn() StatementNode {
+func (p *parser) parseReturn() *ParseTreeNode {
 	if !p.next().Matches("return") {
 		return nil
 	}
 	start := p.pos
 	p.expect("return")
 
-	var res ExpressionNode
+	var res *ExpressionNode
 	if !p.next().Matches(";") {
 		res = p.parseExpression()
 		if res == nil {
@@ -253,20 +294,29 @@ func (p *parser) parseReturn() StatementNode {
 		}
 	}
 
-	return NewReturnStatement(res)
+	return &ParseTreeNode{
+		Kind: ReturnStatement,
+		ReturnStatementNode: &ReturnStatementNode{
+			Value: res,
+		},
+	}
 }
 
-func (p *parser) parseNext() StatementNode {
+func (p *parser) parseNext() *ParseTreeNode {
 	p.expect("next")
-	return NewNextStatement()
+	return &ParseTreeNode{
+		Kind: NextStatement,
+	}
 }
 
-func (p *parser) parseBreak() StatementNode {
+func (p *parser) parseBreak() *ParseTreeNode {
 	p.expect("break")
-	return NewBreakStatement()
+	return &ParseTreeNode{
+		Kind: BreakStatement,
+	}
 }
 
-func (p *parser) parseSemicolonStatement() StatementNode {
+func (p *parser) parseSemicolonStatement() *ParseTreeNode {
 	switch curr := p.next(); {
 	case curr.Matches("mut"):
 		return p.parseMut()
@@ -283,12 +333,12 @@ func (p *parser) parseSemicolonStatement() StatementNode {
 	return p.parseExpressionStatement()
 }
 
-func (p *parser) parseStatBlock() []StatementNode {
+func (p *parser) parseStatBlock() *BlockNode {
 	if !p.next().Matches("{") {
 		return nil
 	}
 
-	stats := []StatementNode{}
+	stats := []*ParseTreeNode{}
 	p.expect("{")
 	for p.hasNext() {
 		if p.next().Matches("}") {
@@ -300,10 +350,13 @@ func (p *parser) parseStatBlock() []StatementNode {
 		}
 	}
 	p.expect("}")
-	return stats
+
+	return &BlockNode{
+		Statements: stats,
+	}
 }
 
-func (p *parser) parseIfElseChain() StatementNode {
+func (p *parser) parseIfElseChain() *ParseTreeNode {
 	if !p.next().Matches("if") {
 		return nil
 	}
@@ -322,8 +375,8 @@ func (p *parser) parseIfElseChain() StatementNode {
 		p.error(api.NewParseError("block after condition", start, p.pos))
 	}
 
-	var elseBlock []StatementNode
-	elses := []*ElseIfStatement{}
+	var elseBlock *BlockNode
+	elses := []*ElseIfNode{}
 
 	for p.hasNext() && p.next().Matches("else") {
 		// else if
@@ -339,7 +392,7 @@ func (p *parser) parseIfElseChain() StatementNode {
 			if body == nil {
 				p.error(api.NewParseError("block after else if", start, p.pos))
 			}
-			elses = append(elses, NewElseIfStatement(cond, body))
+			elses = append(elses, &ElseIfNode{cond, body})
 		} else {
 			// TODO we could easily check if else has been set before
 			// or should we do this in a later pass during sema analyis?
@@ -352,10 +405,18 @@ func (p *parser) parseIfElseChain() StatementNode {
 		}
 	}
 
-	return NewIfStatement(expr, block, elses, elseBlock)
+	return &ParseTreeNode{
+		Kind: IfStatement,
+		IfNode: &IfNode{
+			Cond:    expr,
+			Block:   block,
+			Else:    elseBlock,
+			ElseIfs: elses,
+		},
+	}
 }
 
-func (p *parser) parseWhileLoop() StatementNode {
+func (p *parser) parseWhileLoop() *ParseTreeNode {
 	if !p.next().Matches("while") {
 		return nil
 	}
@@ -367,7 +428,7 @@ func (p *parser) parseWhileLoop() StatementNode {
 		p.error(api.NewParseError("condition after while", start, p.pos))
 	}
 
-	var post ExpressionNode
+	var post *ExpressionNode
 	if p.next().Matches(";") {
 		p.expect(";")
 		post = p.parseExpression()
@@ -377,23 +438,36 @@ func (p *parser) parseWhileLoop() StatementNode {
 	}
 
 	if block := p.parseStatBlock(); block != nil {
-		return NewWhileLoopStatement(val, post, block)
+		return &ParseTreeNode{
+			Kind: WhileLoopStatement,
+			WhileLoopNode: &WhileLoopNode{
+				Cond:  val,
+				Post:  post,
+				Block: block,
+			},
+		}
 	}
+
 	return nil
 }
 
-func (p *parser) parseLoop() StatementNode {
+func (p *parser) parseLoop() *ParseTreeNode {
 	if !p.next().Matches("loop") {
 		return nil
 	}
 	p.expect("loop")
 	if block := p.parseStatBlock(); block != nil {
-		return NewLoopStatement(block)
+		return &ParseTreeNode{
+			Kind: LoopStatement,
+			LoopNode: &LoopNode{
+				Block: block,
+			},
+		}
 	}
 	return nil
 }
 
-func (p *parser) parseStatement() StatementNode {
+func (p *parser) parseStatement() *ParseTreeNode {
 	switch curr := p.next(); {
 	case curr.Matches("if"):
 		return p.parseIfElseChain()
@@ -402,7 +476,10 @@ func (p *parser) parseStatement() StatementNode {
 	case curr.Matches("while"):
 		return p.parseWhileLoop()
 	case curr.Matches("{"):
-		return NewBlockNode(p.parseStatBlock())
+		return &ParseTreeNode{
+			Kind:      BlockStatement,
+			BlockNode: p.parseStatBlock(),
+		}
 	}
 
 	stat := p.parseSemicolonStatement()
@@ -415,20 +492,8 @@ func (p *parser) parseStatement() StatementNode {
 func (p *parser) parseFunctionDeclaration() *FunctionDeclaration {
 	proto := p.parseFunctionPrototypeDeclaration()
 
-	stats := []StatementNode{}
-
-	p.expect("{")
-	for p.hasNext() {
-		if p.next().Matches("}") {
-			break
-		}
-
-		if stat := p.parseStatement(); stat != nil {
-			stats = append(stats, stat)
-		}
-	}
-	p.expect("}")
-	return NewFunctionDeclaration(proto, stats)
+	body := p.parseStatBlock()
+	return &FunctionDeclaration{proto, body}
 }
 
 func (p *parser) parseImplDeclaration() *ImplDeclaration {
@@ -450,7 +515,9 @@ func (p *parser) parseImplDeclaration() *ImplDeclaration {
 	}
 	p.expect("}")
 
-	return NewImplDeclaration(name, functions)
+	return &ImplDeclaration{
+		name, functions,
+	}
 }
 
 func (p *parser) parseTraitDeclaration() *TraitDeclaration {
@@ -480,10 +547,10 @@ func (p *parser) parseTraitDeclaration() *TraitDeclaration {
 	}
 	p.expect("}")
 
-	return NewTraitDeclaration(name, members)
+	return &TraitDeclaration{name, members}
 }
 
-func (p *parser) parseUnaryExpr() ExpressionNode {
+func (p *parser) parseUnaryExpr() *ExpressionNode {
 	// TODO other unary ops.
 	if !p.hasNext() || !p.next().Matches("-", "!", "+", "@") {
 		return nil
@@ -497,10 +564,13 @@ func (p *parser) parseUnaryExpr() ExpressionNode {
 		p.error(api.NewParseError("unary expression", start, p.pos))
 	}
 
-	return NewUnaryExpression(op.Value, right)
+	return &ExpressionNode{
+		Kind:                UnaryExpression,
+		UnaryExpressionNode: &UnaryExpressionNode{op.Value, right},
+	}
 }
 
-func (p *parser) parseOperand() ExpressionNode {
+func (p *parser) parseOperand() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -512,21 +582,57 @@ func (p *parser) parseOperand() ExpressionNode {
 		p.expect("(")
 		expr := p.parseExpression()
 		p.expect(")")
-		return NewGrouping(expr)
+		return &ExpressionNode{
+			Kind:         Grouping,
+			GroupingNode: &GroupingNode{expr},
+		}
 	}
 
 	switch curr := p.consume(); curr.Kind {
 	case Number:
 		// no dot means it's a whole number.
 		if strings.Index(curr.Value, ".") == -1 {
-			return NewIntegerConstant(curr.Value)
+			bigint := new(big.Int)
+			bigint.SetString(curr.Value, 10)
+
+			return &ExpressionNode{
+				Kind: ConstantExpression,
+				ConstantNode: &ConstantNode{
+					Kind:                IntegerConstant,
+					IntegerConstantNode: &IntegerConstantNode{bigint},
+				},
+			}
 		}
-		return NewFloatingConstant(curr.Value)
+
+		val, err := strconv.ParseFloat(curr.Value, 64)
+		if err != nil {
+			panic(err)
+		}
+
+		return &ExpressionNode{
+			Kind: ConstantExpression,
+			ConstantNode: &ConstantNode{
+				Kind:                 FloatingConstant,
+				FloatingConstantNode: &FloatingConstantNode{val},
+			},
+		}
 	case Identifier:
-		return NewVariableReference(curr)
+		return &ExpressionNode{
+			Kind: ConstantExpression,
+			ConstantNode: &ConstantNode{
+				Kind:                  VariableReference,
+				VariableReferenceNode: &VariableReferenceNode{curr},
+			},
+		}
 
 	case String:
-		return NewStringConstant(curr.Value)
+		return &ExpressionNode{
+			Kind: ConstantExpression,
+			ConstantNode: &ConstantNode{
+				Kind:               StringConstant,
+				StringConstantNode: &StringConstantNode{curr.Value},
+			},
+		}
 
 	case EndOfFile:
 		return nil
@@ -537,7 +643,7 @@ func (p *parser) parseOperand() ExpressionNode {
 	}
 }
 
-func (p *parser) parseBuiltin() ExpressionNode {
+func (p *parser) parseBuiltin() *ExpressionNode {
 	start := p.pos
 	builtin := p.expectKind(Identifier)
 	p.expect("!")
@@ -545,13 +651,16 @@ func (p *parser) parseBuiltin() ExpressionNode {
 	if typ == nil {
 		p.error(api.NewParseError("type in builtin", start, p.pos))
 	}
-	return NewBuiltinExpression(builtin.Value, typ)
+	return &ExpressionNode{
+		Kind:                  BuiltinExpression,
+		BuiltinExpressionNode: &BuiltinExpressionNode{builtin.Value, typ},
+	}
 }
 
-func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
+func (p *parser) parseCall(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
 
-	var params []ExpressionNode
+	var params []*ExpressionNode
 
 	p.expect("(")
 	for idx := 0; p.hasNext() && !p.next().Matches(")"); idx++ {
@@ -567,10 +676,15 @@ func (p *parser) parseCall(left ExpressionNode) ExpressionNode {
 	}
 	p.expect(")")
 
-	return NewCallExpression(left, params)
+	return &ExpressionNode{
+		Kind: CallExpression,
+		CallExpressionNode: &CallExpressionNode{
+			left, params,
+		},
+	}
 }
 
-func (p *parser) parseIndex(left ExpressionNode) ExpressionNode {
+func (p *parser) parseIndex(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
 	p.expect("[")
 	val := p.parseExpression()
@@ -578,10 +692,15 @@ func (p *parser) parseIndex(left ExpressionNode) ExpressionNode {
 		p.error(api.NewParseError("expression in array index", start, p.pos))
 	}
 	p.expect("]")
-	return NewIndexExpression(left, val)
+	return &ExpressionNode{
+		Kind: IndexExpression,
+		IndexExpressionNode: &IndexExpressionNode{
+			left, val,
+		},
+	}
 }
 
-func (p *parser) parsePrimaryExpr() ExpressionNode {
+func (p *parser) parsePrimaryExpr() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -613,7 +732,7 @@ func (p *parser) parsePrimaryExpr() ExpressionNode {
 	return left
 }
 
-func (p *parser) parseLeft() ExpressionNode {
+func (p *parser) parseLeft() *ExpressionNode {
 	if expr := p.parsePrimaryExpr(); expr != nil {
 		return expr
 	}
@@ -647,7 +766,7 @@ func getOpPrec(op string) int {
 	return -1
 }
 
-func (p *parser) parsePrec(lastPrec int, left ExpressionNode) ExpressionNode {
+func (p *parser) parsePrec(lastPrec int, left *ExpressionNode) *ExpressionNode {
 	for p.hasNext() {
 		prec := getOpPrec(p.next().Value)
 		if prec < lastPrec {
@@ -671,7 +790,10 @@ func (p *parser) parsePrec(lastPrec int, left ExpressionNode) ExpressionNode {
 		}
 
 		if !p.hasNext() {
-			return NewBinary(left, op.Value, right)
+			return &ExpressionNode{
+				Kind:                 BinaryExpression,
+				BinaryExpressionNode: &BinaryExpressionNode{left, op.Value, right},
+			}
 		}
 
 		nextPrec := getOpPrec(p.next().Value)
@@ -682,13 +804,18 @@ func (p *parser) parsePrec(lastPrec int, left ExpressionNode) ExpressionNode {
 			}
 		}
 
-		left = NewBinary(left, op.Value, right)
+		left = &ExpressionNode{
+			Kind: BinaryExpression,
+			BinaryExpressionNode: &BinaryExpressionNode{
+				left, op.Value, right,
+			},
+		}
 	}
 
 	return left
 }
 
-func (p *parser) parseAssign(left ExpressionNode) ExpressionNode {
+func (p *parser) parseAssign(left *ExpressionNode) *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -703,12 +830,17 @@ func (p *parser) parseAssign(left ExpressionNode) ExpressionNode {
 		p.error(api.NewParseError("expression after assignment operator", start, p.pos))
 	}
 
-	return NewAssignmentStatement(left, op.Value, right)
+	return &ExpressionNode{
+		Kind: AssignStatement,
+		AssignStatementNode: &AssignStatementNode{
+			left, op.Value, right,
+		},
+	}
 }
 
-func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
+func (p *parser) parseDotList(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
-	list := []ExpressionNode{}
+	list := []*ExpressionNode{}
 
 	list = append(list, left)
 
@@ -721,10 +853,13 @@ func (p *parser) parseDotList(left ExpressionNode) ExpressionNode {
 		list = append(list, val)
 	}
 
-	return NewPathExpression(list)
+	return &ExpressionNode{
+		Kind:               PathExpression,
+		PathExpressionNode: &PathExpressionNode{list},
+	}
 }
 
-func (p *parser) parseExpression() ExpressionNode {
+func (p *parser) parseExpression() *ExpressionNode {
 	left := p.parseLeft()
 	if left == nil {
 		return nil
@@ -745,36 +880,46 @@ func (p *parser) parseExpression() ExpressionNode {
 	return left
 }
 
-func (p *parser) parseExpressionStatement() ExpressionNode {
+func (p *parser) parseExpressionStatement() *ParseTreeNode {
 	expr := p.parseExpression()
 	if expr != nil {
-		return expr
+		return &ParseTreeNode{
+			Kind:                    ExpressionStatement,
+			ExpressionStatementNode: expr,
+		}
 	}
 
 	return nil
 }
 
-func (p *parser) parseNode() ParseTreeNode {
+func (p *parser) parseNode() *ParseTreeNode {
 	start := p.pos
+
+	res := &ParseTreeNode{}
 
 	switch curr := p.next(); {
 	case curr.Matches("struct"):
-		return p.parseStructureDeclaration()
+		res.StructureDeclaration = p.parseStructureDeclaration()
+		res.Kind = StructureDeclStatement
 	case curr.Matches("trait"):
-		return p.parseTraitDeclaration()
+		res.TraitDeclaration = p.parseTraitDeclaration()
+		res.Kind = TraitDeclStatement
 	case curr.Matches("impl"):
-		return p.parseImplDeclaration()
+		res.ImplDeclaration = p.parseImplDeclaration()
+		res.Kind = ImplDeclStatement
 	case curr.Matches("func"):
-		return p.parseFunctionDeclaration()
+		res.FunctionDeclaration = p.parseFunctionDeclaration()
+		res.Kind = FunctionDeclStatement
+	default:
+		p.error(api.NewUnimplementedError(p.next().Value, start, p.pos))
 	}
 
-	p.error(api.NewUnimplementedError(p.next().Value, start, p.pos))
-	return nil
+	return res
 }
 
-func parseTokenStream(stream *TokenStream) (ParseTree, []api.CompilerError) {
-	p := &parser{stream.Tokens, 0, []api.CompilerError{}}
-	nodes := []ParseTreeNode{}
+func parseTokenStream(stream []Token) (ParseTree, []api.CompilerError) {
+	p := &parser{stream, 0, []api.CompilerError{}}
+	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
 		if node := p.parseNode(); node != nil {
 			nodes = append(nodes, node)

@@ -1,112 +1,146 @@
 package front
 
-import (
-	"encoding/gob"
-	"fmt"
+type StatementType int
+
+const (
+	LetStatement StatementType = iota
+	MutableStatement
+	ReturnStatement
+	BlockStatement
+	NextStatement
+	BreakStatement
+	ExpressionStatement
+
+	WhileLoopStatement
+	LoopStatement
+	ElseIfStatement
+	IfStatement
+
+	NamedTypeDeclStatement
+	StructureDeclStatement
+	TraitDeclStatement
+	ImplDeclStatement
+	FunctionProtoStatement
+	FunctionDeclStatement
 )
 
-func init() {
-	gob.Register(&LetStatement{})
-	gob.Register(&MutableStatement{})
-	gob.Register(&ReturnStatement{})
-	gob.Register(&AssignStatement{})
-	gob.Register(&BreakStatement{})
-	gob.Register(&NextStatement{})
-	gob.Register(&BlockNode{})
+type NamedType struct {
+	Name Token
+	Type *TypeNode
 }
-
-type StatementNode interface {
-	Print() string
-}
-
-type NextStatement struct{}
-
-func (n *NextStatement) Print() string {
-	return "next"
-}
-
-func NewNextStatement() *NextStatement {
-	return &NextStatement{}
-}
-
-type BreakStatement struct{}
-
-func (b *BreakStatement) Print() string {
-	return "break"
-}
-
-func NewBreakStatement() *BreakStatement {
-	return &BreakStatement{}
-}
-
-type ReturnStatement struct {
-	Value ExpressionNode
-}
-
-func (r *ReturnStatement) Print() string {
-	return fmt.Sprintf("ret %s", r.Value)
-}
-
-func NewReturnStatement(val ExpressionNode) *ReturnStatement {
-	return &ReturnStatement{val}
-}
-
-// "let" iden [ ":" Type ] = Value;
-type LetStatement struct {
-	Name  Token
-	Type  TypeNode
-	Value ExpressionNode
-}
-
-func NewLetStatement(name Token, kind TypeNode, val ExpressionNode) *LetStatement {
-	return &LetStatement{name, kind, val}
-}
-
-func (l *LetStatement) Print() string {
-	return fmt.Sprintf("let %s = ", l.Name)
-}
-
-// "mut" iden [ ":" Type ] [ = Value ];
-type MutableStatement struct {
-	Name  Token
-	Type  TypeNode
-	Value ExpressionNode
-}
-
-func NewMutableStatement(name Token, typ TypeNode, val ExpressionNode) *MutableStatement {
-	return &MutableStatement{name, typ, val}
-}
-
-func (m *MutableStatement) Print() string {
-	return fmt.Sprintf("mut %s = ", m.Name)
-}
-
-// BLOCK NODE
 
 type BlockNode struct {
-	Stats []StatementNode
+	// hm
+	Statements []*ParseTreeNode
 }
 
-func (b *BlockNode) Print() string {
-	return "{ ... }"
+//
+type ElseIfNode struct {
+	Cond  *ExpressionNode
+	Block *BlockNode
 }
 
-func NewBlockNode(stats []StatementNode) *BlockNode {
-	return &BlockNode{stats}
+// "func" iden "(" args ")"
+type FunctionPrototypeDeclaration struct {
+	Name      Token
+	Arguments []*NamedType
+
+	// TODO should this be set to anything by
+	// default, e.g. we can inject a "void"
+	// into here?
+	ReturnType *TypeNode
 }
 
-// ASSIGN
-
-type AssignStatement struct {
-	LHand ExpressionNode
-	Op    string
-	RHand ExpressionNode
+// [ FunctionPrototypeDeclaration ] "{" { Stat ";" } "}"
+type FunctionDeclaration struct {
+	*FunctionPrototypeDeclaration
+	Body *BlockNode
 }
 
-func (a *AssignStatement) Print() string {
-	return fmt.Sprintf("%s %s %s", a.LHand.Print(), a.Op, a.RHand.Print())
+type LetStatementNode struct {
+	Name  Token
+	Type  *TypeNode
+	Value *ExpressionNode
+}
+type MutableStatementNode struct {
+	Name  Token
+	Type  *TypeNode
+	Value *ExpressionNode
+}
+type ReturnStatementNode struct {
+	Value *ExpressionNode
 }
 
-func NewAssignmentStatement(lh ExpressionNode, op string, rh ExpressionNode) *AssignStatement {
-	return &AssignStatement{lh, op, rh}
+// CONSTR
+
+type WhileLoopNode struct {
+	Cond  *ExpressionNode
+	Post  *ExpressionNode
+	Block *BlockNode
+}
+
+type LoopNode struct {
+	Block *BlockNode
+}
+
+type IfNode struct {
+	Cond    *ExpressionNode
+	Block   *BlockNode
+	ElseIfs []*ElseIfNode
+	Else    *BlockNode
+}
+
+// DECL
+
+// "struct" iden { ... }
+type StructureDeclaration struct {
+	Name   Token
+	Fields []*NamedType
+}
+
+// "trait" iden { ... }
+type TraitDeclaration struct {
+	Name    Token
+	Members []*FunctionPrototypeDeclaration
+}
+
+// todo
+type ImplDeclaration struct {
+	Name      Token
+	Functions []*FunctionDeclaration
+}
+
+// ParseTreeNode is a big jumbo node containing all of the
+// node combinations.
+//
+// We did use inheritance here, but this doesn't serialize into
+// JSON unless I implement the JSON Serialisation for each node,
+// which is quite tedious. So instead, I'm opting for the C-like
+// union approach, though Go doesn't support unions so this will be
+// a relatively large struct.
+type ParseTreeNode struct {
+	Kind StatementType
+
+	LetStatementNode        *LetStatementNode
+	MutableStatementNode    *MutableStatementNode
+	ReturnStatementNode     *ReturnStatementNode
+	ExpressionStatementNode *ExpressionNode
+
+	// CONSTR
+
+	WhileLoopNode *WhileLoopNode
+	LoopNode      *LoopNode
+	ElseIfNode    *ElseIfNode
+	BlockNode     *BlockNode
+	IfNode        *IfNode
+
+	// DECL
+
+	StructureDeclaration *StructureDeclaration
+	TraitDeclaration     *TraitDeclaration
+	ImplDeclaration      *ImplDeclaration
+
+	NamedType                    *NamedType
+	FunctionPrototypeDeclaration *FunctionPrototypeDeclaration
+	FunctionDeclaration          *FunctionDeclaration
 }

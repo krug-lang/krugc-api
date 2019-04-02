@@ -13,7 +13,11 @@ func Parse(c *gin.Context) {
 		panic(err)
 	}
 
-	var stream TokenStream
+	var stream []Token
+	if err := jsoniter.Unmarshal([]byte(krugReq.Data), &stream); err != nil {
+		panic(err)
+	}
+
 	/*
 		var stream TokenStream
 		pCache := bytes.NewBuffer(krugReq.Data)
@@ -21,7 +25,7 @@ func Parse(c *gin.Context) {
 		decCache.Decode(&stream)
 	*/
 
-	parseTree, errors := parseTokenStream(&stream)
+	parseTree, errors := parseTokenStream(stream)
 
 	jsonParseTree, err := jsoniter.MarshalIndent(parseTree, "", "  ")
 	if err != nil {
@@ -41,20 +45,11 @@ func Tokenize(c *gin.Context) {
 		panic(err)
 	}
 
-	var sourceFile KrugCompilationUnit
-	sourceFile.Code = string(krugReq.Data)
+	code := string(krugReq.Data)
 
-	/*
-		pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&sourceFile)
-	*/
+	tokens, errors := tokenizeInput(code)
 
-	tokens, errors := tokenizeInput(sourceFile.Code)
-
-	stream := TokenStream{tokens}
-
-	jsonResp, err := jsoniter.MarshalIndent(stream, "", "  ")
+	jsonResp, err := jsoniter.MarshalIndent(tokens, "", "  ")
 	if err != nil {
 		panic(err)
 	}
