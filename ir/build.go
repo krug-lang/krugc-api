@@ -76,7 +76,7 @@ func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
 }
 
 func (b *builder) buildType(node *front.TypeNode) *Type {
-	var resp *Type
+	resp := &Type{}
 
 	switch node.Kind {
 	case front.UnresolvedType:

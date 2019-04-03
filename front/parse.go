@@ -78,7 +78,7 @@ func (p *parser) hasNext() bool {
 
 func (p *parser) parsePointerType() *TypeNode {
 	start := p.pos
-	p.expect("^")
+	p.expect("*")
 	base := p.parseType()
 	if base == nil {
 		p.error(api.NewParseError("type after pointer", start, p.pos))
@@ -660,10 +660,22 @@ func (p *parser) parseBuiltin() *ExpressionNode {
 	start := p.pos
 	builtin := p.expectKind(Identifier)
 	p.expect("!")
+
+	parens := false
+	if p.next().Matches("(") {
+		parens = true
+		p.consume()
+	}
+
 	typ := p.parseType()
 	if typ == nil {
 		p.error(api.NewParseError("type in builtin", start, p.pos))
 	}
+
+	if parens {
+		p.expect(")")
+	}
+
 	return &ExpressionNode{
 		Kind:                  BuiltinExpression,
 		BuiltinExpressionNode: &BuiltinExpressionNode{builtin.Value, typ},
