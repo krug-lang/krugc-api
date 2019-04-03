@@ -41,30 +41,30 @@ func (s *symResolvePass) resolveAssign(a *ir.Assign) {
 	s.resolveValue(a.RHand)
 }
 
-func (s *symResolvePass) resolveValue(e ir.Value) ir.SymbolValue {
-	switch expr := e.(type) {
-	case *ir.IntegerValue:
+func (s *symResolvePass) resolveValue(e *ir.Value) ir.SymbolValue {
+	switch e.Kind {
+	case ir.IntegerValueValue:
 		return nil
-	case *ir.StringValue:
+	case ir.StringValueValue:
 		return nil
-	case *ir.FloatingValue:
-		return nil
-
-	case *ir.Assign:
-		s.resolveAssign(expr)
+	case ir.FloatingValueValue:
 		return nil
 
-	case *ir.BinaryExpression:
-		s.resolveValue(expr.LHand)
-		s.resolveValue(expr.RHand)
+	case ir.AssignValue:
+		s.resolveAssign(e.Assign)
 		return nil
 
-	case *ir.Identifier:
-		stab, _ := s.resolveIden(expr)
+	case ir.BinaryExpressionValue:
+		s.resolveValue(e.BinaryExpression.LHand)
+		s.resolveValue(e.BinaryExpression.RHand)
+		return nil
+
+	case ir.IdentifierValue:
+		stab, _ := s.resolveIden(e.Identifier)
 		return stab
 
 	default:
-		panic(fmt.Sprintf("unhandled val %s", reflect.TypeOf(expr)))
+		panic(fmt.Sprintf("unhandled val %s", reflect.TypeOf(e)))
 	}
 }
 
@@ -92,13 +92,14 @@ func (s *symResolvePass) resolveCall(c *ir.Call) {
 	// TODO:
 }
 
-func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val ir.Value) ir.SymbolValue {
+func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val *ir.Value) ir.SymbolValue {
 	if last == nil {
 		return s.resolveValue(val)
 	}
 
-	switch v := val.(type) {
-	case *ir.Identifier:
+	switch val.Kind {
+	case ir.IdentifierValue:
+		v := val.Identifier
 		val, ok := last.Lookup(v.Name.Value)
 		if !ok {
 			s.error(api.NewUnresolvedSymbol(v.Name.Value))
@@ -106,7 +107,7 @@ func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val ir.Value) ir.
 		return val
 
 	default:
-		panic(fmt.Sprintf("unhandled value %s", reflect.TypeOf(v)))
+		panic(fmt.Sprintf("unhandled value %s", reflect.TypeOf(val)))
 	}
 }
 
@@ -114,21 +115,27 @@ func (s *symResolvePass) resolvePath(p *ir.Path) {
 	s.resolveValue(p.Values[0])
 }
 
-func (s *symResolvePass) resolveInstr(i ir.Instruction) {
-	switch instr := i.(type) {
-	case *ir.Alloca:
+func (s *symResolvePass) resolveInstr(i *ir.Instruction) {
+	switch i.Kind {
+	case ir.AllocaInstr:
+		instr := i.Alloca
 		s.resolveAlloca(instr)
-	case *ir.Local:
+	case ir.LocalInstr:
+		instr := i.Local
 		s.resolveLocal(instr)
 
-	case *ir.Return:
+	case ir.ReturnInstr:
+		instr := i.Return
 		if instr.Val != nil {
 			s.resolveValue(instr.Val)
 		}
-	case *ir.Path:
-		s.resolvePath(instr)
 
-	case *ir.IfStatement:
+	// FIXME
+	case ir.PathValue:
+		// s.resolvePath(instr)
+
+	case ir.IfStatementInstr:
+		instr := i.IfStatement
 		s.resolveValue(instr.Cond)
 		s.resolveBlock(instr.True)
 		for _, e := range instr.ElseIf {
@@ -137,25 +144,31 @@ func (s *symResolvePass) resolveInstr(i ir.Instruction) {
 		if instr.Else != nil {
 			s.resolveBlock(instr.Else)
 		}
-	case *ir.WhileLoop:
+	case ir.WhileLoopInstr:
+		instr := i.WhileLoop
 		s.resolveValue(instr.Cond)
 		if instr.Post != nil {
 			s.resolveValue(instr.Post)
 		}
 		s.resolveBlock(instr.Body)
-	case *ir.Loop:
+	case ir.LoopInstr:
+		instr := i.Loop
 		s.resolveBlock(instr.Body)
 
-	case *ir.Block:
+	case ir.BlockInstr:
+		instr := i.Block
 		s.resolveBlock(instr)
 
-	case *ir.Call:
-		s.resolveCall(instr)
-	case *ir.Assign:
+	// FIXME
+	case ir.CallValue:
+		// s.resolveCall(instr)
+
+	case ir.AssignInstr:
+		instr := i.Assign
 		s.resolveAssign(instr)
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(instr)))
+		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(i)))
 	}
 }
 

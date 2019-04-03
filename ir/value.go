@@ -1,52 +1,98 @@
 package ir
 
 import (
-	"encoding/gob"
 	"fmt"
 	"math/big"
 
 	"github.com/hugobrains/caasper/front"
 )
 
-func init() {
-	gob.Register(&IntegerValue{})
-	gob.Register(&FloatingValue{})
-	gob.Register(&StringValue{})
-	gob.Register(&BinaryExpression{})
-	gob.Register(&Identifier{})
-	gob.Register(&Grouping{})
-	gob.Register(&Builtin{})
-	gob.Register(&UnaryExpression{})
-	gob.Register(&Call{})
-	gob.Register(&Path{})
-	gob.Register(&Index{})
+type ValueKind string
+
+const (
+	// fix the ValueValue this is from a copy paste job.
+	IntegerValueValue     = "IntegerValue"
+	FloatingValueValue    = "FloatingValue"
+	StringValueValue      = "StringValue"
+	BinaryExpressionValue = "BinaryExpression"
+	IdentifierValue       = "Identifier"
+	BuiltinValue          = "Builtin"
+	GroupingValue         = "Grouping"
+	UnaryExpressionValue  = "UnaryExpression"
+	CallValue             = "Call"
+	PathValue             = "Path"
+	IndexValue            = "Index"
+	AssignValue           = "Assign"
+)
+
+type Value struct {
+	Kind             ValueKind
+	IntegerValue     *IntegerValue
+	FloatingValue    *FloatingValue
+	StringValue      *StringValue
+	BinaryExpression *BinaryExpression
+	Identifier       *Identifier
+	Grouping         *Grouping
+	Assign           *Assign
+	Builtin          *Builtin
+	UnaryExpression  *UnaryExpression
+	Call             *Call
+	Path             *Path
+	Index            *Index
 }
 
-// FIXME
-type Value interface {
-	InferredType() *Type
+// FIXME! this is shit
+func (v *Value) InferredType() *Type {
+	switch v.Kind {
+	case IntegerValueValue:
+		return v.IntegerValue.InferredType()
+	case FloatingValueValue:
+		return v.FloatingValue.InferredType()
+	case StringValueValue:
+		return v.StringValue.InferredType()
+	case BinaryExpressionValue:
+		return v.BinaryExpression.InferredType()
+	case IdentifierValue:
+		return v.Identifier.InferredType()
+	case BuiltinValue:
+		return v.Builtin.InferredType()
+	case GroupingValue:
+		return v.Grouping.InferredType()
+	case UnaryExpressionValue:
+		return v.UnaryExpression.InferredType()
+	case CallValue:
+		return v.Call.InferredType()
+	case PathValue:
+		return v.Path.InferredType()
+	case IndexValue:
+		return v.Index.InferredType()
+	case AssignValue:
+		panic("uh")
+	default:
+		panic("unhandled Value::InferredType()")
+	}
 }
 
 // PAREN EXPR
 
 type Grouping struct {
-	Val Value
+	Val *Value
 }
 
 func (g *Grouping) InferredType() *Type {
 	return g.Val.InferredType()
 }
 
-func NewGrouping(val Value) *Grouping {
+func NewGrouping(val *Value) *Grouping {
 	return &Grouping{val}
 }
 
 // BINARY
 
 type BinaryExpression struct {
-	LHand Value
+	LHand *Value
 	Op    string
-	RHand Value
+	RHand *Value
 }
 
 func (b *BinaryExpression) InferredType() *Type {
@@ -55,7 +101,7 @@ func (b *BinaryExpression) InferredType() *Type {
 	return b.LHand.InferredType()
 }
 
-func NewBinaryExpression(lh Value, op string, rh Value) *BinaryExpression {
+func NewBinaryExpression(lh *Value, op string, rh *Value) *BinaryExpression {
 	return &BinaryExpression{lh, op, rh}
 }
 
@@ -63,7 +109,7 @@ func NewBinaryExpression(lh Value, op string, rh Value) *BinaryExpression {
 
 type UnaryExpression struct {
 	Op  string
-	Val Value
+	Val *Value
 }
 
 func (u *UnaryExpression) InferredType() *Type {
@@ -71,7 +117,7 @@ func (u *UnaryExpression) InferredType() *Type {
 	return u.Val.InferredType()
 }
 
-func NewUnaryExpression(op string, val Value) *UnaryExpression {
+func NewUnaryExpression(op string, val *Value) *UnaryExpression {
 	return &UnaryExpression{op, val}
 }
 
@@ -112,7 +158,10 @@ type StringValue struct {
 
 func (s *StringValue) InferredType() *Type {
 	// TODO rune*
-	return NewPointerType(Int32)
+	return &Type{
+		Kind:    PointerKind,
+		Pointer: NewPointerType(Int32),
+	}
 }
 
 func NewStringValue(val string) *StringValue {
@@ -152,43 +201,43 @@ func NewBuiltin(name string, typ *Type) *Builtin {
 // CALL
 
 type Call struct {
-	Left   Value
-	Params []Value
+	Left   *Value
+	Params []*Value
 }
 
 func (c *Call) InferredType() *Type {
 	panic("same thing as identifier, needs to be inferred from c.Left's ReturnType ")
 }
 
-func NewCall(left Value, params []Value) *Call {
+func NewCall(left *Value, params []*Value) *Call {
 	return &Call{left, params}
 }
 
 // PATH
 
 type Path struct {
-	Values []Value
+	Values []*Value
 }
 
 func (p *Path) InferredType() *Type {
 	panic("also needs to be inferred in a later stage in sema")
 }
 
-func NewPath(values []Value) *Path {
+func NewPath(values []*Value) *Path {
 	return &Path{values}
 }
 
 // INDEX
 
 type Index struct {
-	Left Value
-	Sub  Value
+	Left *Value
+	Sub  *Value
 }
 
 func (i *Index) InferredType() *Type {
 	panic("needs to be inferred from i.Left's Base Type!")
 }
 
-func NewIndex(left, sub Value) *Index {
+func NewIndex(left, sub *Value) *Index {
 	return &Index{left, sub}
 }

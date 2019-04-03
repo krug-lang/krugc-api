@@ -26,7 +26,7 @@ func (d *decl) pop() {
 	d.curr = d.curr.Outer
 }
 
-func (d *decl) regType(name string, t ir.Type) {
+func (d *decl) regType(name string, t *ir.Type) {
 	d.curr.RegisterType(name, t)
 }
 
@@ -38,11 +38,15 @@ func (d *decl) visitLocal(l *ir.Local) {
 
 	// if the type its a reference type,
 	// try and link this to the type it references.
-	if refType, ok := l.Type.(*ir.ReferenceType); ok {
-		name := refType.Name
+	if l.Type.Kind == ir.ReferenceKind {
+		ref := l.Type.Reference
+		name := ref.Name
 
 		if structure, ok := d.mod.Structures[name]; ok {
-			l.Type = structure
+			l.Type = &ir.Type{
+				Kind:      ir.StructKind,
+				Structure: structure,
+			}
 		} else {
 			// couldn't find reference type.
 		}
@@ -59,23 +63,25 @@ func (d *decl) visitAlloca(a *ir.Alloca) {
 	d.regType(a.Name.Value, a.Type)
 }
 
-func (d *decl) visitInstr(i ir.Instruction) {
-	switch instr := i.(type) {
-	case *ir.Block:
-		d.visitBlock(instr)
+func (d *decl) visitInstr(i *ir.Instruction) {
+	switch i.Kind {
+	case ir.BlockInstr:
+		d.visitBlock(i.Block)
 
-	case *ir.Local:
-		d.visitLocal(instr)
-	case *ir.Alloca:
-		d.visitAlloca(instr)
+	case ir.LocalInstr:
+		d.visitLocal(i.Local)
+	case ir.AllocaInstr:
+		d.visitAlloca(i.Alloca)
 
-	case *ir.Path:
+		// FIXME?
+	case ir.PathValue:
 		return
-	case *ir.Return:
+
+	case ir.ReturnInstr:
 		return
 
 	default:
-		d.error(api.NewUnimplementedError("visitInstr: " + reflect.TypeOf(instr).String()))
+		d.error(api.NewUnimplementedError("visitInstr: " + reflect.TypeOf(i).String()))
 	}
 }
 

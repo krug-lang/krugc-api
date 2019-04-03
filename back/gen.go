@@ -63,34 +63,44 @@ func (e *emitter) write(f string, d ...interface{}) {
 	*e.target += fmt.Sprintf(f, d...)
 }
 
-func (e *emitter) writeType(typ ir.Type) string {
-	switch t := typ.(type) {
+func (e *emitter) writeInteger(t *ir.IntegerType) string {
+	res := fmt.Sprintf("int%d_t", t.Width)
+	if !t.Signed {
+		res = "u" + res
+	}
+	return res
+}
+
+func (e *emitter) writeFloat(t *ir.FloatingType) string {
+	if t.Width == 32 {
+		return "float"
+	}
+	return "double"
+}
+
+func (e *emitter) writePointer(t *ir.PointerType) string {
+	return fmt.Sprintf("%s*", e.writeType(t.Base))
+}
+
+func (e *emitter) writeType(typ *ir.Type) string {
+	switch typ.Kind {
 
 	// compile to uint8_t, uint16_t, etc.
-	case *ir.IntegerType:
-		res := fmt.Sprintf("int%d_t", t.Width)
-		if !t.Signed {
-			res = "u" + res
-		}
-		return res
-	case *ir.FloatingType:
-		if t.Width == 32 {
-			return "float"
-		}
-		return "double"
-
-	case *ir.VoidType:
+	case ir.IntegerKind:
+		return e.writeInteger(typ.IntegerType)
+	case ir.FloatKind:
+		return e.writeFloat(typ.FloatingType)
+	case ir.VoidKind:
 		return "void"
 
-	case *ir.ReferenceType:
-		// FIXME
-		return t.Name
+	case ir.ReferenceKind:
+		return typ.Reference.Name
 
-	case *ir.PointerType:
-		return fmt.Sprintf("%s*", e.writeType(t.Base))
+	case ir.PointerKind:
+		return e.writePointer(typ.Pointer)
 
 	default:
-		panic(fmt.Sprintf("unhandled type %s", reflect.TypeOf(t)))
+		panic(fmt.Sprintf("unhandled type %s", reflect.TypeOf(typ)))
 	}
 
 }
@@ -112,42 +122,52 @@ func (e *emitter) buildBuiltin(b *ir.Builtin) string {
 	}
 }
 
-func (e *emitter) buildExpr(l ir.Value) string {
-	switch val := l.(type) {
-	case *ir.IntegerValue:
+func (e *emitter) buildExpr(l *ir.Value) string {
+	switch l.Kind {
+	case ir.IntegerValueValue:
+		val := l.IntegerValue
 		return val.RawValue.String()
 
-	case *ir.FloatingValue:
+	case ir.FloatingValueValue:
+		val := l.FloatingValue
 		return fmt.Sprintf("%f", val.Value)
 
-	case *ir.StringValue:
+	case ir.StringValueValue:
+		val := l.StringValue
 		return val.Value
 
-	case *ir.BinaryExpression:
+	case ir.BinaryExpressionValue:
+		val := l.BinaryExpression
 		lh := e.buildExpr(val.LHand)
 		rh := e.buildExpr(val.RHand)
 		return fmt.Sprintf("(%s%s%s)", lh, val.Op, rh)
 
-	case *ir.Grouping:
+	case ir.GroupingValue:
+		val := l.Grouping
 		value := e.buildExpr(val.Val)
 		return fmt.Sprintf("(%s)", value)
 
-	case *ir.Identifier:
+	case ir.IdentifierValue:
+		val := l.Identifier
 		return val.Name.Value
 
-	case *ir.Builtin:
+	case ir.BuiltinValue:
+		val := l.Builtin
 		return e.buildBuiltin(val)
 
-	case *ir.UnaryExpression:
+	case ir.UnaryExpressionValue:
+		val := l.UnaryExpression
 		value := e.buildExpr(val.Val)
 		return fmt.Sprintf("(*%s)", value)
 
-	case *ir.Assign:
+	case ir.AssignValue:
+		val := l.Assign
 		lh := e.buildExpr(val.LHand)
 		rh := e.buildExpr(val.RHand)
 		return fmt.Sprintf("%s %s %s", lh, val.Op, rh)
 
-	case *ir.Call:
+	case ir.CallValue:
+		val := l.Call
 		lh := e.buildExpr(val.Left)
 		var argsList string
 		for idx, arg := range val.Params {
@@ -159,7 +179,7 @@ func (e *emitter) buildExpr(l ir.Value) string {
 		return fmt.Sprintf("%s(%s)", lh, argsList)
 
 	default:
-		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(val)))
+		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(l)))
 	}
 }
 
@@ -236,55 +256,57 @@ func (e *emitter) buildCall(c *ir.Call) {
 	e.writet(e.indentLevel, "%s(%s)", left, argList)
 }
 
-func (e *emitter) buildInstr(i ir.Instruction) {
-	switch instr := i.(type) {
+func (e *emitter) buildInstr(i *ir.Instruction) {
+	switch i.Kind {
 
 	// memory allocation
-	case *ir.Alloca:
-		e.buildAlloca(instr)
+	case ir.AllocaInstr:
+		e.buildAlloca(i.Alloca)
 		return
-	case *ir.Local:
-		e.buildLocal(instr)
+	case ir.LocalInstr:
+		e.buildLocal(i.Local)
 		return
-	case *ir.Assign:
-		e.buildAssign(instr)
-		return
-
-	// ...
-
-	case *ir.Block:
-		e.buildBlock(instr)
+	case ir.AssignInstr:
+		e.buildAssign(i.Assign)
 		return
 
 	// ...
 
-	case *ir.Return:
-		e.buildRet(instr)
+	case ir.BlockInstr:
+		e.buildBlock(i.Block)
+		return
+
+	// ...
+
+	case ir.ReturnInstr:
+		e.buildRet(i.Return)
 		return
 
 	// conditional
 
-	case *ir.IfStatement:
-		e.buildIfStat(instr)
+	case ir.IfStatementInstr:
+		e.buildIfStat(i.IfStatement)
 		return
 
 	// looping constructs
 
-	case *ir.Loop:
-		e.buildLoop(instr)
+	case ir.LoopInstr:
+		e.buildLoop(i.Loop)
 		return
 
-	case *ir.WhileLoop:
-		e.buildWhileLoop(instr)
+	case ir.WhileLoopInstr:
+		e.buildWhileLoop(i.WhileLoop)
 		return
 
-	case *ir.Call:
-		e.buildCall(instr)
-		e.write(";\n")
-		return
+		/* hm?
+		case ir.CallValue:
+			e.buildCall(i.Call)
+			e.write(";\n")
+			return
+		*/
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(instr)))
+		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(i)))
 	}
 
 }

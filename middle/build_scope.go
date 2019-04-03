@@ -68,41 +68,49 @@ func (b *builder) visitLoop(loop *ir.Loop) {
 	b.visitBlock(loop.Body)
 }
 
-func (b *builder) visitInstr(i ir.Instruction) {
-	switch instr := i.(type) {
-	case *ir.Alloca:
+func (b *builder) visitInstr(i *ir.Instruction) {
+	switch i.Kind {
+	case ir.AllocaInstr:
+		instr := i.Alloca
 		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name))
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
 
-	case *ir.Local:
+	case ir.LocalInstr:
+		instr := i.Local
 		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name))
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
 
-	case *ir.IfStatement:
+	case ir.IfStatementInstr:
+		instr := i.IfStatement
 		b.visitIfStat(instr)
-	case *ir.WhileLoop:
+	case ir.WhileLoopInstr:
+		instr := i.WhileLoop
 		b.visitWhileLoop(instr)
-	case *ir.Loop:
+	case ir.LoopInstr:
+		instr := i.Loop
 		b.visitLoop(instr)
 
-	case *ir.Block:
+	case ir.BlockInstr:
+		instr := i.Block
 		b.visitBlock(instr)
 
-	case *ir.Path:
-		return
-	case *ir.Return:
-		return
-	case *ir.Call:
-		return
-	case *ir.Assign:
-		return
+		/*
+			case *ir.Path:
+				return
+			case *ir.Return:
+				return
+			case *ir.Call:
+				return
+			case *ir.Assign:
+				return
+		*/
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(instr)))
+		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(i)))
 	}
 }
 

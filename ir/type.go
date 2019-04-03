@@ -32,6 +32,29 @@ type Type struct {
 	Reference    *ReferenceType
 }
 
+func (t *Type) String() string {
+	switch t.Kind {
+	case VoidKind:
+		return t.VoidType.String()
+	case FloatKind:
+		return t.FloatingType.String()
+	case IntegerKind:
+		return t.IntegerType.String()
+	case ArrayKind:
+		return t.ArrayType.String()
+	case FunctionKind:
+		return t.Function.String()
+	case StructKind:
+		return t.Structure.String()
+	case PointerKind:
+		return t.Pointer.String()
+	case ReferenceKind:
+		return t.Reference.String()
+	default:
+		panic("unhandled type in Type::String()")
+	}
+}
+
 var (
 	Float64 = &Type{Kind: FloatKind, FloatingType: NewFloatingType(64)}
 	Float32 = &Type{Kind: FloatKind, FloatingType: NewFloatingType(32)}
@@ -133,14 +156,14 @@ func NewReferenceType(name string) *ReferenceType {
 
 type ArrayType struct {
 	Base *Type
-	Size Value
+	Size *Value
 }
 
 func (a *ArrayType) String() string {
 	return fmt.Sprintf("[%s; %s]", a.Base.String(), a.Size)
 }
 
-func NewArrayType(base *Type, size Value) *ArrayType {
+func NewArrayType(base *Type, size *Value) *ArrayType {
 	return &ArrayType{base, size}
 }
 
@@ -185,7 +208,7 @@ func (t TypeDict) String() string {
 }
 
 func newTypeDict() *TypeDict {
-	return &TypeDict{map[string]Type{}, []front.Token{}}
+	return &TypeDict{map[string]*Type{}, []front.Token{}}
 }
 
 // STRUCTURE
@@ -217,6 +240,10 @@ type Function struct {
 	Param      *TypeDict
 	ReturnType *Type
 	Body       *Block
+}
+
+func (f *Function) String() string {
+	return f.ReturnType.String()
 }
 
 func NewFunction(name front.Token, params *TypeDict, ret *Type) *Function {

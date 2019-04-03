@@ -64,12 +64,15 @@ func (b *builder) buildPointerType(p *front.PointerTypeNode) *PointerType {
 	return NewPointerType(base)
 }
 
-func (b *builder) buildArrayType(p *front.ArrayTypeNode) *ArrayType {
+func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
 	// TODO should be constant expr.
 	size := b.buildExpr(p.Size)
 
 	base := b.buildType(p.Base)
-	return NewArrayType(base, size)
+	return &Type{
+		Kind:      ArrayKind,
+		ArrayType: NewArrayType(base, size),
+	}
 }
 
 func (b *builder) buildType(node *front.TypeNode) *Type {
@@ -84,8 +87,7 @@ func (b *builder) buildType(node *front.TypeNode) *Type {
 		resp.Kind = PointerKind
 
 	case front.ArrayType:
-		resp.ArrayType = b.buildArrayType(node.ArrayTypeNode)
-		resp.Kind = ArrayKind
+		return b.buildArrayType(node.ArrayTypeNode)
 
 	default:
 		panic(fmt.Sprintf("unimplemented type %s", reflect.TypeOf(node)))
@@ -101,50 +103,69 @@ func (b *builder) declareStructure(node *front.StructureDeclaration) *Structure 
 	return NewStructure(node.Name, fields)
 }
 
-func (b *builder) buildBinaryExpr(e *front.BinaryExpressionNode) *BinaryExpression {
+func (b *builder) buildBinaryExpr(e *front.BinaryExpressionNode) *Value {
 	lh := b.buildExpr(e.LHand)
 	rh := b.buildExpr(e.RHand)
-	return NewBinaryExpression(lh, e.Operator, rh)
+	return &Value{
+		Kind:             BinaryExpressionValue,
+		BinaryExpression: NewBinaryExpression(lh, e.Operator, rh),
+	}
 }
 
-func (b *builder) buildUnaryExpr(u *front.UnaryExpressionNode) *UnaryExpression {
+func (b *builder) buildUnaryExpr(u *front.UnaryExpressionNode) *Value {
 	val := b.buildExpr(u.Value)
-	return NewUnaryExpression(u.Operator, val)
+	return &Value{
+		Kind:            UnaryExpressionValue,
+		UnaryExpression: NewUnaryExpression(u.Operator, val),
+	}
 }
 
-func (b *builder) buildGrouping(g *front.GroupingNode) *Grouping {
+func (b *builder) buildGrouping(g *front.GroupingNode) *Value {
 	val := b.buildExpr(g.Value)
-	return NewGrouping(val)
+	return &Value{
+		Kind:     GroupingValue,
+		Grouping: NewGrouping(val),
+	}
 }
 
-func (b *builder) buildBuiltin(e *front.BuiltinExpressionNode) Value {
-	return NewBuiltin(e.Name, b.buildType(e.Type))
+func (b *builder) buildBuiltin(e *front.BuiltinExpressionNode) *Value {
+	return &Value{
+		Kind:    BuiltinValue,
+		Builtin: NewBuiltin(e.Name, b.buildType(e.Type)),
+	}
 }
 
-func (b *builder) buildCallExpression(e *front.CallExpressionNode) Value {
+func (b *builder) buildCallExpression(e *front.CallExpressionNode) *Value {
 	left := b.buildExpr(e.Left)
-	var params []Value
+	var params []*Value
 	for _, p := range e.Params {
 		expr := b.buildExpr(p)
 		params = append(params, expr)
 	}
-	return NewCall(left, params)
+	return &Value{
+		Kind: CallValue,
+		Call: NewCall(left, params),
+	}
 }
 
-func (b *builder) buildIndexExpression(i *front.IndexExpressionNode) Value {
+func (b *builder) buildIndexExpression(i *front.IndexExpressionNode) *Value {
 	left := b.buildExpr(i.Left)
 	sub := b.buildExpr(i.Value)
-	return NewIndex(left, sub)
+	return &Value{
+		Kind:  IndexValue,
+		Index: NewIndex(left, sub),
+	}
 }
 
-func (b *builder) buildPathExpression(p *front.PathExpressionNode) Value {
-	var values []Value
+func (b *builder) buildPathExpression(p *front.PathExpressionNode) *Value {
+	var values []*Value
 	for _, e := range p.Values {
 		val := b.buildExpr(e)
 
 		// stupid hack to flatten the path expressions
 		// TODO(felix): fix the parser for this.
-		if path, ok := val.(*Path); ok {
+		if val.Kind == PathValue {
+			path := val.Path
 			for _, val := range path.Values {
 				values = append(values, val)
 			}
@@ -153,23 +174,31 @@ func (b *builder) buildPathExpression(p *front.PathExpressionNode) Value {
 
 		values = append(values, val)
 	}
-	return NewPath(values)
-}
-
-func (b *builder) buildConst(e *front.ConstantNode) Value {
-	switch e.Kind {
-	case front.IntegerConstant:
-		return NewIntegerValue(e.IntegerConstantNode.Value)
-	case front.FloatingConstant:
-		return NewFloatingValue(e.FloatingConstantNode.Value)
-	case front.StringConstant:
-		return NewStringValue(e.StringConstantNode.Value)
-	default:
-		panic(fmt.Sprintf("unimplemented %s", e.Kind))
+	return &Value{
+		Kind: PathValue,
+		Path: NewPath(values),
 	}
 }
 
-func (b *builder) buildExpr(expr *front.ExpressionNode) Value {
+func (b *builder) buildConst(e *front.ConstantNode) *Value {
+	res := &Value{}
+	switch e.Kind {
+	case front.IntegerConstant:
+		res.IntegerValue = NewIntegerValue(e.IntegerConstantNode.Value)
+		res.Kind = IntegerValueValue
+	case front.FloatingConstant:
+		res.FloatingValue = NewFloatingValue(e.FloatingConstantNode.Value)
+		res.Kind = FloatingValueValue
+	case front.StringConstant:
+		res.StringValue = NewStringValue(e.StringConstantNode.Value)
+		res.Kind = StringValueValue
+	default:
+		panic(fmt.Sprintf("unimplemented %s", e.Kind))
+	}
+	return res
+}
+
+func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 	switch expr.Kind {
 	case front.ConstantExpression:
 		return b.buildConst(expr.ConstantNode)
@@ -204,8 +233,8 @@ func (b *builder) buildExpr(expr *front.ExpressionNode) Value {
 
 }
 
-func (b *builder) buildLetStat(l *front.LetStatementNode) Instruction {
-	var val Value
+func (b *builder) buildLetStat(l *front.LetStatementNode) *Instruction {
+	var val *Value
 	if l.Value != nil {
 		val = b.buildExpr(l.Value)
 	}
@@ -215,22 +244,26 @@ func (b *builder) buildLetStat(l *front.LetStatementNode) Instruction {
 		typ = b.buildType(l.Type)
 	} else if val != nil {
 		// infer type from expr.
-		typ = val.InferredType()
+		// TODO annoying switch on kind for this
+		// typ = val.InferredType()
 	}
 
 	local := NewLocal(l.Name, typ)
 	local.SetValue(val)
 	local.SetMutable(true)
-	return local
+	return &Instruction{
+		Kind:  LocalInstr,
+		Local: local,
+	}
 }
 
-func (b *builder) buildMutStat(m *front.MutableStatementNode) Instruction {
-	var val Value
+func (b *builder) buildMutStat(m *front.MutableStatementNode) *Instruction {
+	var val *Value
 	if m.Value != nil {
 		val = b.buildExpr(m.Value)
 	}
 
-	var typ Type
+	var typ *Type
 	if m.Type != nil {
 		typ = b.buildType(m.Type)
 	} else {
@@ -238,36 +271,52 @@ func (b *builder) buildMutStat(m *front.MutableStatementNode) Instruction {
 			panic("no expression to infer from")
 		}
 		// infer type from expr.
-		typ = val.InferredType()
+		// TODO annoying switch on kind for this
+		// typ = val.InferredType()
 	}
 
 	local := NewLocal(m.Name, typ)
 	local.SetValue(val)
 	local.SetMutable(true)
-	return local
+	return &Instruction{
+		Kind:  LocalInstr,
+		Local: local,
+	}
 }
 
-func (b *builder) buildReturnStat(ret *front.ReturnStatementNode) Instruction {
-	var val Value
+func (b *builder) buildReturnStat(ret *front.ReturnStatementNode) *Instruction {
+	var val *Value
 	if ret.Value != nil {
 		val = b.buildExpr(ret.Value)
 	}
-	return NewReturn(val)
+	res := NewReturn(val)
+	return &Instruction{
+		Kind:   ReturnInstr,
+		Return: res,
+	}
 }
 
-func (b *builder) buildWhileLoopStat(while *front.WhileLoopNode) Instruction {
+func (b *builder) buildWhileLoopStat(while *front.WhileLoopNode) *Instruction {
 	cond := b.buildExpr(while.Cond)
-	var post Value
+	var post *Value
 	if while.Post != nil {
 		post = b.buildExpr(while.Post)
 	}
 	body := b.buildBlock(while.Block)
-	return NewWhileLoop(cond, post, body)
+	res := NewWhileLoop(cond, post, body)
+	return &Instruction{
+		Kind:      WhileLoopInstr,
+		WhileLoop: res,
+	}
 }
 
-func (b *builder) buildLoopStat(loop *front.LoopNode) Instruction {
+func (b *builder) buildLoopStat(loop *front.LoopNode) *Instruction {
 	body := b.buildBlock(loop.Block)
-	return NewLoop(body)
+	res := NewLoop(body)
+	return &Instruction{
+		Kind: LoopInstr,
+		Loop: res,
+	}
 }
 
 func (b *builder) buildBlock(block *front.BlockNode) *Block {
@@ -280,7 +329,7 @@ func (b *builder) buildBlock(block *front.BlockNode) *Block {
 	return res
 }
 
-func (b *builder) buildIfStat(iff *front.IfNode) Instruction {
+func (b *builder) buildIfStat(iff *front.IfNode) *Instruction {
 	cond := b.buildExpr(iff.Cond)
 	t := b.buildBlock(iff.Block)
 
@@ -296,18 +345,29 @@ func (b *builder) buildIfStat(iff *front.IfNode) Instruction {
 		f = b.buildBlock(iff.Else)
 	}
 
-	return NewIfStatement(cond, t, elses, f)
+	return &Instruction{
+		Kind:        IfStatementInstr,
+		IfStatement: NewIfStatement(cond, t, elses, f),
+	}
 }
 
-func (b *builder) buildAssignStat(a *front.AssignStatementNode) Value {
+func (b *builder) buildAssignStat(a *front.AssignStatementNode) *Value {
 	// FIXME!
-	return NewAssign(b.buildExpr(a.LHand), a.Op, b.buildExpr(a.RHand))
+	res := NewAssign(b.buildExpr(a.LHand), a.Op, b.buildExpr(a.RHand))
+	return &Value{
+		Kind:   AssignValue,
+		Assign: res,
+	}
 }
 
-func (b *builder) buildStat(stat *front.ParseTreeNode) Instruction {
+func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 	switch stat.Kind {
 	case front.BlockStatement:
-		return b.buildBlock(stat.BlockNode)
+		body := b.buildBlock(stat.BlockNode)
+		return &Instruction{
+			Kind:  BlockInstr,
+			Block: body,
+		}
 
 	case front.LetStatement:
 		return b.buildLetStat(stat.LetStatementNode)
@@ -318,9 +378,9 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) Instruction {
 		return b.buildReturnStat(stat.ReturnStatementNode)
 
 	case front.BreakStatement:
-		return NewBreak()
+		return &Instruction{Kind: BreakInstr, Break: NewBreak()}
 	case front.NextStatement:
-		return NewNext()
+		return &Instruction{Kind: NextInstr, Next: NewNext()}
 
 	case front.LoopStatement:
 		return b.buildLoopStat(stat.LoopNode)
@@ -331,7 +391,10 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) Instruction {
 		return b.buildIfStat(stat.IfNode)
 
 	case front.ExpressionStatement:
-		return b.buildExpr(stat.ExpressionStatementNode)
+		return &Instruction{
+			Kind:                ExpressionInstr,
+			ExpressionStatement: b.buildExpr(stat.ExpressionStatementNode),
+		}
 
 	default:
 		panic(fmt.Sprintf("unimplemented stat! %s", reflect.TypeOf(stat)))
@@ -344,7 +407,7 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 		params.Set(p.Name, b.buildType(p.Type))
 	}
 
-	var ret Type = Void
+	ret := Void
 	if node.ReturnType != nil {
 		ret = b.buildType(node.ReturnType)
 	}
