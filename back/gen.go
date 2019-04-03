@@ -231,6 +231,7 @@ func (e *emitter) buildIfStat(iff *ir.IfStatement) {
 	}
 
 	if iff.Else != nil {
+		e.writetln(e.indentLevel, "else")
 		e.buildBlock(iff.Else)
 	}
 }
