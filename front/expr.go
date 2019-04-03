@@ -14,8 +14,13 @@ const (
 	PathExpression                    = "pathExpr"
 	AssignStatement                   = "assignExpr"
 	ConstantExpression                = "constExpr"
+	LambdaExpression                  = "lambdaExpr"
 )
 
+type LambdaExpressionNode struct {
+	Proto *FunctionPrototypeDeclaration
+	Body  *BlockNode
+}
 type BuiltinExpressionNode struct {
 	Name string
 	Type *TypeNode
@@ -58,6 +63,7 @@ type AssignStatementNode struct {
 type ExpressionNode struct {
 	Kind ExpressionType
 
+	LambdaExpressionNode   *LambdaExpressionNode   `json:"lambdaExpr,omitempty"`
 	BuiltinExpressionNode  *BuiltinExpressionNode  `json:"builtinExpr,omitempty"`
 	VariableExpressionNode *VariableExpressionNode `json:"variableExpr,omitempty"`
 	LiteralExpressionNode  *LiteralExpressionNode  `json:"literalExpr,omitempty"`

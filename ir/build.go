@@ -201,10 +201,34 @@ func (b *builder) buildConst(e *front.ConstantNode) *Value {
 	return res
 }
 
+func (b *builder) buildLambda(expr *front.LambdaExpressionNode) *Value {
+	// generate a new temp function
+	// return a pointer to this new temp func?
+	/*
+		let x = fn(a int, b int) int {
+			return a + b;
+		};
+
+		fn generatedFunc(a int, b int) int {
+			return a + b;
+		}
+
+		let x = &generatedFunc;
+
+		x();
+	*/
+
+	// hm.
+	return &Value{}
+}
+
 func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 	switch expr.Kind {
 	case front.ConstantExpression:
 		return b.buildConst(expr.ConstantNode)
+
+	case front.LambdaExpression:
+		return b.buildLambda(expr.LambdaExpressionNode)
 
 	case front.BinaryExpression:
 		return b.buildBinaryExpr(expr.BinaryExpressionNode)
@@ -231,7 +255,7 @@ func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 		return b.buildIndexExpression(expr.IndexExpressionNode)
 
 	default:
-		panic(fmt.Sprintf("unhandled expr %s", reflect.TypeOf(expr)))
+		panic(fmt.Sprintf("unhandled expr %s", expr.Kind))
 	}
 
 }

@@ -8,6 +8,19 @@ import (
 	"github.com/hugobrains/caasper/api"
 )
 
+// keywords
+const (
+	fn    string = "fn"
+	let          = "let"
+	mut          = "mut"
+	brk          = "break"
+	ret          = "return"
+	next         = "next"
+	trait        = "trait"
+	struc        = "struct"
+	impl         = "impl"
+)
+
 var BadToken Token
 
 type parser struct {
@@ -169,7 +182,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
 	start := p.pos
 
-	p.expect("func")
+	p.expect(fn)
 	name := p.expectKind(Identifier)
 
 	args := []*NamedType{}
@@ -210,7 +223,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 func (p *parser) parseMut() *ParseTreeNode {
 	start := p.pos
 
-	p.expect("mut")
+	p.expect(mut)
 	name := p.expectKind(Identifier)
 
 	var typ *TypeNode
@@ -249,7 +262,7 @@ func (p *parser) parseMut() *ParseTreeNode {
 func (p *parser) parseLet() *ParseTreeNode {
 	start := p.pos
 
-	p.expect("let")
+	p.expect(let)
 	name := p.expectKind(Identifier)
 
 	var typ *TypeNode
@@ -318,15 +331,15 @@ func (p *parser) parseBreak() *ParseTreeNode {
 
 func (p *parser) parseSemicolonStatement() *ParseTreeNode {
 	switch curr := p.next(); {
-	case curr.Matches("mut"):
+	case curr.Matches(mut):
 		return p.parseMut()
-	case curr.Matches("let"):
+	case curr.Matches(let):
 		return p.parseLet()
-	case curr.Matches("return"):
+	case curr.Matches(ret):
 		return p.parseReturn()
-	case curr.Matches("next"):
+	case curr.Matches(next):
 		return p.parseNext()
-	case curr.Matches("break"):
+	case curr.Matches(brk):
 		return p.parseBreak()
 	}
 
@@ -700,9 +713,24 @@ func (p *parser) parseIndex(left *ExpressionNode) *ExpressionNode {
 	}
 }
 
+func (p *parser) parseLambda() *ExpressionNode {
+	proto := p.parseFunctionPrototypeDeclaration()
+	body := p.parseStatBlock()
+	return &ExpressionNode{
+		Kind: LambdaExpression,
+		LambdaExpressionNode: &LambdaExpressionNode{
+			proto, body,
+		},
+	}
+}
+
 func (p *parser) parsePrimaryExpr() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
+	}
+
+	if p.next().Matches(fn) {
+		return p.parseLambda()
 	}
 
 	// TODO unary ops.
@@ -898,18 +926,27 @@ func (p *parser) parseNode() *ParseTreeNode {
 	res := &ParseTreeNode{}
 
 	switch curr := p.next(); {
-	case curr.Matches("struct"):
+	case curr.Matches(struc):
 		res.StructureDeclaration = p.parseStructureDeclaration()
 		res.Kind = StructureDeclStatement
-	case curr.Matches("trait"):
+	case curr.Matches(trait):
 		res.TraitDeclaration = p.parseTraitDeclaration()
 		res.Kind = TraitDeclStatement
-	case curr.Matches("impl"):
+	case curr.Matches(impl):
 		res.ImplDeclaration = p.parseImplDeclaration()
 		res.Kind = ImplDeclStatement
-	case curr.Matches("func"):
+	case curr.Matches(fn):
 		res.FunctionDeclaration = p.parseFunctionDeclaration()
 		res.Kind = FunctionDeclStatement
+
+	case curr.Matches(mut):
+		res = p.parseMut()
+		p.expect(";")
+
+	case curr.Matches(let):
+		res = p.parseLet()
+		p.expect(";")
+
 	default:
 		p.error(api.NewUnimplementedError(p.next().Value, start, p.pos))
 	}

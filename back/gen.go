@@ -83,6 +83,10 @@ func (e *emitter) writePointer(t *ir.PointerType) string {
 }
 
 func (e *emitter) writeType(typ *ir.Type) string {
+	if typ == nil {
+		panic("trying to write a nil type!")
+	}
+
 	switch typ.Kind {
 
 	// compile to uint8_t, uint16_t, etc.
@@ -179,7 +183,7 @@ func (e *emitter) buildExpr(l *ir.Value) string {
 		return fmt.Sprintf("%s(%s)", lh, argsList)
 
 	default:
-		panic(fmt.Sprintf("unimplemented expr %s", reflect.TypeOf(l)))
+		panic(fmt.Sprintf("unimplemented expr %s", l.Kind))
 	}
 }
 
@@ -299,15 +303,12 @@ func (e *emitter) buildInstr(i *ir.Instruction) {
 		e.buildWhileLoop(i.WhileLoop)
 		return
 
-		/* hm?
-		case ir.CallValue:
-			e.buildCall(i.Call)
-			e.write(";\n")
-			return
-		*/
+	case ir.ExpressionInstr:
+		e.buildExpr(i.ExpressionStatement)
+		return
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(i)))
+		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
 	}
 
 }
@@ -343,9 +344,12 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 }
 
 func (e *emitter) emitFunc(fn *ir.Function) {
-	mangledFuncName := fn.Name.Value
+	generatedFuncName := fn.Name.Value
+
+	// when the function is just 'main', we mangle it
+	// to krug_main, as this is the entry point of our program.
 	if strings.Compare(fn.Name.Value, "main") == 0 {
-		mangledFuncName = "krug_" + fn.Name.Value
+		generatedFuncName = "krug_" + fn.Name.Value
 	}
 
 	writeArgList := func(fn *ir.Function) string {
@@ -358,22 +362,23 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 			if idx != 0 {
 				argList += ", "
 			}
-			argList += fmt.Sprintf("%s %s", e.writeType(t), name)
+			argList += fmt.Sprintf("%s %s", e.writeType(t), name.Value)
 			idx++
 		}
 		return argList
 	}
 
-	typ := e.writeType(fn.ReturnType)
+	returnType := e.writeType(fn.ReturnType)
+	argList := writeArgList(fn)
 
 	// write prototype to the decl part
 	e.retarget(&e.decl)
-	argList := writeArgList(fn)
-	e.writeln("%s %s(%s);", typ, mangledFuncName, argList)
+	e.writeln("%s %s(%s);", returnType, generatedFuncName, argList)
 
 	// write definition to the source part.
 	e.retarget(&e.source)
-	e.writeln("%s %s(%s)", typ, mangledFuncName, argList)
+	e.writeln("%s %s(%s)", returnType, generatedFuncName, argList)
+
 	e.buildBlock(fn.Body)
 }
 
