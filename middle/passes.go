@@ -2,8 +2,8 @@ package middle
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/api"
-	"github.com/hugobrains/krug-serv/ir"
+	"github.com/hugobrains/caasper/api"
+	"github.com/hugobrains/caasper/ir"
 	jsoniter "github.com/json-iterator/go"
 )
 

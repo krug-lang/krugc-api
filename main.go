@@ -8,10 +8,10 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/back"
-	"github.com/hugobrains/krug-serv/front"
-	"github.com/hugobrains/krug-serv/ir"
-	"github.com/hugobrains/krug-serv/middle"
+	"github.com/hugobrains/caasper/back"
+	"github.com/hugobrains/caasper/front"
+	"github.com/hugobrains/caasper/ir"
+	"github.com/hugobrains/caasper/middle"
 )
 
 func main() {

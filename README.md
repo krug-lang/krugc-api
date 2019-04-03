@@ -1,9 +1,9 @@
-# krug-serv
-This repository is the compiler for Krug. Most of the work is done here, the
-frontends job is simply to talk to this server. 
+# caasper
+This repository is the compiler for Krug: Caasper. Most of the actual compilation 
+work is done here, the frontends job is simply to talk to Caasper.
 
 You will need both the krug [frontend](//github.com/hugobrains/krug), and
-this server - running locally or on the cloud somewhere - for you to 
+an instance of Caasper running locally - or on the cloud somewhere - for you to 
 compile krug programs.
 
 ## how it works

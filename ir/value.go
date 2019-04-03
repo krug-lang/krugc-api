@@ -2,9 +2,10 @@ package ir
 
 import (
 	"encoding/gob"
+	"fmt"
 	"math/big"
 
-	"github.com/hugobrains/krug-serv/front"
+	"github.com/hugobrains/caasper/front"
 )
 
 func init() {
@@ -21,8 +22,9 @@ func init() {
 	gob.Register(&Index{})
 }
 
+// FIXME
 type Value interface {
-	InferredType() Type
+	InferredType() *Type
 }
 
 // PAREN EXPR
@@ -31,7 +33,7 @@ type Grouping struct {
 	Val Value
 }
 
-func (g *Grouping) InferredType() Type {
+func (g *Grouping) InferredType() *Type {
 	return g.Val.InferredType()
 }
 
@@ -47,8 +49,9 @@ type BinaryExpression struct {
 	RHand Value
 }
 
-func (b *BinaryExpression) InferredType() Type {
+func (b *BinaryExpression) InferredType() *Type {
 	// TODO pick widest type, for now we pick the left type
+	fmt.Println(b.LHand, b.Op, b.RHand)
 	return b.LHand.InferredType()
 }
 
@@ -63,7 +66,7 @@ type UnaryExpression struct {
 	Val Value
 }
 
-func (u *UnaryExpression) InferredType() Type {
+func (u *UnaryExpression) InferredType() *Type {
 	// TODO?
 	return u.Val.InferredType()
 }
@@ -78,7 +81,7 @@ type FloatingValue struct {
 	Value float64
 }
 
-func (i *FloatingValue) InferredType() Type {
+func (i *FloatingValue) InferredType() *Type {
 	return Float64
 }
 
@@ -92,7 +95,7 @@ type IntegerValue struct {
 	RawValue *big.Int
 }
 
-func (i *IntegerValue) InferredType() Type {
+func (i *IntegerValue) InferredType() *Type {
 	// TODO
 	return Int32
 }
@@ -107,7 +110,7 @@ type StringValue struct {
 	Value string
 }
 
-func (s *StringValue) InferredType() Type {
+func (s *StringValue) InferredType() *Type {
 	// TODO rune*
 	return NewPointerType(Int32)
 }
@@ -122,7 +125,7 @@ type Identifier struct {
 	Name front.Token
 }
 
-func (i *Identifier) InferredType() Type {
+func (i *Identifier) InferredType() *Type {
 	panic("we need to deal with this later after name resolution")
 }
 
@@ -134,15 +137,15 @@ func NewIdentifier(name front.Token) *Identifier {
 
 type Builtin struct {
 	Name string
-	Type Type
+	Type *Type
 }
 
-func (b *Builtin) InferredType() Type {
+func (b *Builtin) InferredType() *Type {
 	// HM
 	return b.Type
 }
 
-func NewBuiltin(name string, typ Type) *Builtin {
+func NewBuiltin(name string, typ *Type) *Builtin {
 	return &Builtin{name, typ}
 }
 
@@ -153,7 +156,7 @@ type Call struct {
 	Params []Value
 }
 
-func (c *Call) InferredType() Type {
+func (c *Call) InferredType() *Type {
 	panic("same thing as identifier, needs to be inferred from c.Left's ReturnType ")
 }
 
@@ -167,7 +170,7 @@ type Path struct {
 	Values []Value
 }
 
-func (p *Path) InferredType() Type {
+func (p *Path) InferredType() *Type {
 	panic("also needs to be inferred in a later stage in sema")
 }
 
@@ -182,7 +185,7 @@ type Index struct {
 	Sub  Value
 }
 
-func (i *Index) InferredType() Type {
+func (i *Index) InferredType() *Type {
 	panic("needs to be inferred from i.Left's Base Type!")
 }
 

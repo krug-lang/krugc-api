@@ -8,8 +8,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/api"
-	"github.com/hugobrains/krug-serv/ir"
+	"github.com/hugobrains/caasper/api"
+	"github.com/hugobrains/caasper/ir"
 )
 
 func Gen(c *gin.Context) {
@@ -18,24 +18,17 @@ func Gen(c *gin.Context) {
 		panic(err)
 	}
 
-	var irMod *ir.Module
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&irMod)
-	*/
-
-	// for now we just return the
-	// bytes for one big old c file.
-	monoFile, errors := codegen(irMod)
-
-	jsonMonoFile, err := jsoniter.MarshalIndent(monoFile, "", "  ")
-	if err != nil {
+	var irMod ir.Module
+	if err := jsoniter.Unmarshal([]byte(krugReq.Data), &irMod); err != nil {
 		panic(err)
 	}
 
+	// for now we just return the
+	// bytes for one big old c file.
+	monoFile, errors := codegen(&irMod)
+
 	resp := api.KrugResponse{
-		Data:   string(jsonMonoFile),
+		Data:   monoFile,
 		Errors: errors,
 	}
 	c.JSON(200, &resp)
@@ -361,7 +354,9 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 	e.buildBlock(fn.Body)
 }
 
-func codegen(mod *ir.Module) ([]byte, []api.CompilerError) {
+func codegen(mod *ir.Module) (string, []api.CompilerError) {
+	fmt.Println(mod)
+
 	e := &emitter{}
 	e.retarget(&e.decl)
 
@@ -389,5 +384,5 @@ func codegen(mod *ir.Module) ([]byte, []api.CompilerError) {
 	e.retarget(&e.source)
 	e.writeln(`int main() { return krug_main(); }`)
 
-	return []byte(e.decl + e.source), []api.CompilerError{}
+	return string(e.decl + e.source), []api.CompilerError{}
 }

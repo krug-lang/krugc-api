@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/caasper/api"
 )
 
 var BadToken Token

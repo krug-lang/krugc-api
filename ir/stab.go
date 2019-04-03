@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"math/rand"
 
-	"github.com/hugobrains/krug-serv/front"
+	"github.com/hugobrains/caasper/front"
 )
 
 func init() {

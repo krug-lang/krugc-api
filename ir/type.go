@@ -1,50 +1,58 @@
 package ir
 
 import (
-	"encoding/gob"
 	"fmt"
 
-	"github.com/hugobrains/krug-serv/front"
+	"github.com/hugobrains/caasper/front"
 )
 
-type Type interface {
-	String() string
-}
+type TypeOf string
 
-func init() {
-	gob.Register(&FloatingType{})
-	gob.Register(&IntegerType{})
-	gob.Register(&VoidType{})
-	gob.Register(&ReferenceType{})
-	gob.Register(&PointerType{})
-	gob.Register(&Structure{})
-	gob.Register(&Function{})
-	gob.Register(&TypeDict{})
-	gob.Register(&Impl{})
-	gob.Register(&ArrayType{})
+const (
+	FloatKind     TypeOf = "float"
+	IntegerKind          = "int"
+	ArrayKind            = "array"
+	FunctionKind         = "fn"
+	VoidKind             = "void"
+	StructKind           = "struct"
+	PointerKind          = "ptr"
+	ReferenceKind        = "ref"
+)
+
+type Type struct {
+	Kind TypeOf
+
+	VoidType     *VoidType
+	FloatingType *FloatingType
+	IntegerType  *IntegerType
+	ArrayType    *ArrayType
+	Function     *Function
+	Structure    *Structure
+	Pointer      *PointerType
+	Reference    *ReferenceType
 }
 
 var (
-	Float64 = NewFloatingType(64)
-	Float32 = NewFloatingType(32)
+	Float64 = &Type{Kind: FloatKind, FloatingType: NewFloatingType(64)}
+	Float32 = &Type{Kind: FloatKind, FloatingType: NewFloatingType(32)}
 
-	Int8  = NewIntegerType(8, true)
-	Int16 = NewIntegerType(16, true)
-	Int32 = NewIntegerType(32, true)
-	Int64 = NewIntegerType(64, true)
+	Int8  = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(8, true)}
+	Int16 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(16, true)}
+	Int32 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(32, true)}
+	Int64 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(64, true)}
 
-	Uint8  = NewIntegerType(8, false)
-	Uint16 = NewIntegerType(16, false)
-	Uint32 = NewIntegerType(32, false)
-	Uint64 = NewIntegerType(64, false)
+	Uint8  = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(8, false)}
+	Uint16 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(16, false)}
+	Uint32 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(32, false)}
+	Uint64 = &Type{Kind: IntegerKind, IntegerType: NewIntegerType(64, false)}
 
-	Void = &VoidType{}
+	Void = &Type{Kind: VoidKind, VoidType: &VoidType{}}
 
 	Bool = Uint32
 	Rune = Int32
 )
 
-var PrimitiveType = map[string]Type{
+var PrimitiveType = map[string]*Type{
 	"f64": Float64,
 	"f32": Float32,
 
@@ -124,7 +132,7 @@ func NewReferenceType(name string) *ReferenceType {
 // ARRAY TYPE
 
 type ArrayType struct {
-	Base Type
+	Base *Type
 	Size Value
 }
 
@@ -132,37 +140,37 @@ func (a *ArrayType) String() string {
 	return fmt.Sprintf("[%s; %s]", a.Base.String(), a.Size)
 }
 
-func NewArrayType(base Type, size Value) *ArrayType {
+func NewArrayType(base *Type, size Value) *ArrayType {
 	return &ArrayType{base, size}
 }
 
 // POINTER TYPE
 
 type PointerType struct {
-	Base Type
+	Base *Type
 }
 
 func (p *PointerType) String() string {
 	return fmt.Sprintf("*%s", p.Base.String())
 }
 
-func NewPointerType(base Type) *PointerType {
+func NewPointerType(base *Type) *PointerType {
 	return &PointerType{base}
 }
 
 // ORDERED TYPE MAP.
 
 type TypeDict struct {
-	Data  map[string]Type
+	Data  map[string]*Type
 	Order []front.Token
 }
 
-func (t *TypeDict) Get(k string) Type {
+func (t *TypeDict) Get(k string) *Type {
 	typ, _ := t.Data[k]
 	return typ
 }
 
-func (t *TypeDict) Set(a front.Token, typ Type) {
+func (t *TypeDict) Set(a front.Token, typ *Type) {
 	t.Order = append(t.Order, a)
 	t.Data[a.Value] = typ
 }
@@ -207,11 +215,11 @@ type Function struct {
 	Name       front.Token
 	Stab       *SymbolTable
 	Param      *TypeDict
-	ReturnType Type
+	ReturnType *Type
 	Body       *Block
 }
 
-func NewFunction(name front.Token, params *TypeDict, ret Type) *Function {
+func NewFunction(name front.Token, params *TypeDict, ret *Type) *Function {
 	return &Function{name, nil, params, ret, NewBlock()}
 }
 

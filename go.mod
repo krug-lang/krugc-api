@@ -1,4 +1,4 @@
-module github.com/hugobrains/krug-serv
+module github.com/hugobrains/caasper
 
 go 1.12
 

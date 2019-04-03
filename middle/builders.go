@@ -4,8 +4,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/api"
-	"github.com/hugobrains/krug-serv/ir"
+	"github.com/hugobrains/caasper/api"
+	"github.com/hugobrains/caasper/ir"
 )
 
 /*

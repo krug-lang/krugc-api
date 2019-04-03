@@ -4,7 +4,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/api"
+	"github.com/hugobrains/caasper/api"
 )
 
 func Parse(c *gin.Context) {

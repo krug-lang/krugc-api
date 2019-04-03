@@ -7,8 +7,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/krug-serv/api"
-	"github.com/hugobrains/krug-serv/front"
+	"github.com/hugobrains/caasper/api"
+	"github.com/hugobrains/caasper/front"
 )
 
 // Build takes the given []ParseTree's
@@ -20,6 +20,11 @@ func Build(c *gin.Context) {
 	}
 
 	var trees [][]*front.ParseTreeNode
+
+	if err := jsoniter.Unmarshal([]byte(krugReq.Data), &trees); err != nil {
+		panic(err)
+	}
+
 	irModule, errors := build(trees)
 
 	jsonIrModule, err := jsoniter.MarshalIndent(irModule, "", "  ")
@@ -47,19 +52,19 @@ func newBuilder(mod *Module) *builder {
 	return &builder{mod, []api.CompilerError{}}
 }
 
-func (b *builder) buildUnresolvedType(u *front.UnresolvedTypeNode) Type {
+func (b *builder) buildUnresolvedType(u *front.UnresolvedTypeNode) *Type {
 	if t, ok := PrimitiveType[u.Name]; ok {
 		return t
 	}
-	return NewReferenceType(u.Name)
+	return &Type{Kind: ReferenceKind, Reference: NewReferenceType(u.Name)}
 }
 
-func (b *builder) buildPointerType(p *front.PointerTypeNode) Type {
+func (b *builder) buildPointerType(p *front.PointerTypeNode) *PointerType {
 	base := b.buildType(p.Base)
 	return NewPointerType(base)
 }
 
-func (b *builder) buildArrayType(p *front.ArrayTypeNode) Type {
+func (b *builder) buildArrayType(p *front.ArrayTypeNode) *ArrayType {
 	// TODO should be constant expr.
 	size := b.buildExpr(p.Size)
 
@@ -67,20 +72,26 @@ func (b *builder) buildArrayType(p *front.ArrayTypeNode) Type {
 	return NewArrayType(base, size)
 }
 
-func (b *builder) buildType(node *front.TypeNode) Type {
+func (b *builder) buildType(node *front.TypeNode) *Type {
+	var resp *Type
+
 	switch node.Kind {
 	case front.UnresolvedType:
 		return b.buildUnresolvedType(node.UnresolvedTypeNode)
 
 	case front.PointerType:
-		return b.buildPointerType(node.PointerTypeNode)
+		resp.Pointer = b.buildPointerType(node.PointerTypeNode)
+		resp.Kind = PointerKind
 
 	case front.ArrayType:
-		return b.buildArrayType(node.ArrayTypeNode)
+		resp.ArrayType = b.buildArrayType(node.ArrayTypeNode)
+		resp.Kind = ArrayKind
 
 	default:
 		panic(fmt.Sprintf("unimplemented type %s", reflect.TypeOf(node)))
 	}
+
+	return resp
 }
 
 // here we build a structure, give it an EMPTY type dictionary
@@ -146,7 +157,16 @@ func (b *builder) buildPathExpression(p *front.PathExpressionNode) Value {
 }
 
 func (b *builder) buildConst(e *front.ConstantNode) Value {
-	return nil
+	switch e.Kind {
+	case front.IntegerConstant:
+		return NewIntegerValue(e.IntegerConstantNode.Value)
+	case front.FloatingConstant:
+		return NewFloatingValue(e.FloatingConstantNode.Value)
+	case front.StringConstant:
+		return NewStringValue(e.StringConstantNode.Value)
+	default:
+		panic(fmt.Sprintf("unimplemented %s", e.Kind))
+	}
 }
 
 func (b *builder) buildExpr(expr *front.ExpressionNode) Value {
@@ -190,13 +210,10 @@ func (b *builder) buildLetStat(l *front.LetStatementNode) Instruction {
 		val = b.buildExpr(l.Value)
 	}
 
-	var typ Type
+	var typ *Type
 	if l.Type != nil {
 		typ = b.buildType(l.Type)
-	} else {
-		if val == nil {
-			panic("no expression to infer from")
-		}
+	} else if val != nil {
 		// infer type from expr.
 		typ = val.InferredType()
 	}
@@ -414,6 +431,7 @@ func build(trees [][]*front.ParseTreeNode) (*Module, []api.CompilerError) {
 
 	b := newBuilder(module)
 	for _, tree := range trees {
+		fmt.Println(tree)
 		b.buildTree(module, tree)
 	}
 	return module, b.errors
