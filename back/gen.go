@@ -326,17 +326,19 @@ func (e *emitter) buildBlock(b *ir.Block) {
 }
 
 func (e *emitter) emitStructure(st *ir.Structure) {
-	// forward declare 'Struct name' as just 'name'
-	e.writetln(e.indentLevel, "typedef struct %s %s;", st.Name, st.Name)
+	stName := st.Name.Value
 
-	e.writetln(e.indentLevel, "struct %s {", st.Name)
+	// forward declare 'Struct name' as just 'name'
+	e.writetln(e.indentLevel, "typedef struct %s %s;", stName, stName)
+
+	e.writetln(e.indentLevel, "struct %s {", stName)
 	e.indentLevel++
 
 	for _, name := range st.Fields.Order {
 		t := st.Fields.Get(name.Value)
 
 		typ := e.writeType(t)
-		e.writetln(e.indentLevel, "%s %s;", typ, name)
+		e.writetln(e.indentLevel, "%s %s;", typ, name.Value)
 	}
 	e.indentLevel--
 
