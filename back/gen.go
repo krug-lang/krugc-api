@@ -195,7 +195,7 @@ func (e *emitter) buildLocal(l *ir.Local) {
 		valueCode = fmt.Sprintf(" = %s;", e.buildExpr(l.Val))
 	}
 
-	e.writetln(e.indentLevel, "%s%s %s%s", modifier, aType, l.Name, valueCode)
+	e.writetln(e.indentLevel, "%s%s %s%s", modifier, aType, l.Name.Value, valueCode)
 }
 
 func (e *emitter) buildRet(r *ir.Return) {
