@@ -32,5 +32,28 @@ For a brief overview, Krug is:
 
 It's based loosely on Rust, Go, and C.
 
+## notes
+
+- compiles to c (c99)
+- uses stdbool, stdio, stdint and stdlib for now.
+- compiled into one big c file, compiling into different
+  c files is planned for some kind of conditional compilation
+- garbage collection is currently unimplemented
+- no generics are planned as this is out of the scope for now
+- virtual machine backend is a possibility
+- perhaps some rust like ownership memory model will be looked into
+
+#### roadmap
+
+- api route for name mangling
+- api route for stripping comments out of the source files
+- minification needs to be specified in the c code gen route.
+- compression on the generated c code (Gzip), this will be done
+  when there are test files that are big enough to measure performance.
+- dont use api.KrugRequest everywhere, have specific requests for each route
+  e.g. for codegen so that we can specify minification (on/off), or the indentation size, etc.
+- syntax for destructuring structures `let { a, b, c } = some_struct;`
+- module system
+
 ## license
 MIT, see the [LICENSE](/LICENSE) for more information.

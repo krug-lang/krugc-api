@@ -39,6 +39,7 @@ type emitter struct {
 	source      string
 	target      *string
 	indentLevel int
+	tabSize     int
 }
 
 func (e *emitter) retarget(to *string) {
@@ -50,8 +51,7 @@ func (e *emitter) writeln(f string, d ...interface{}) {
 }
 
 func (e *emitter) writet(num int, f string, d ...interface{}) {
-	const TabSize = 4
-	tabs := strings.Repeat(" ", TabSize*num)
+	tabs := strings.Repeat(" ", e.tabSize*num)
 	e.write(tabs+f, d...)
 }
 
@@ -387,7 +387,9 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 func codegen(mod *ir.Module) (string, []api.CompilerError) {
 	fmt.Println(mod)
 
-	e := &emitter{}
+	e := &emitter{
+		tabSize: 2,
+	}
 	e.retarget(&e.decl)
 
 	headers := []string{
