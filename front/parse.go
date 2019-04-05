@@ -962,6 +962,7 @@ func (p *parser) parseNode() *ParseTreeNode {
 
 	default:
 		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
+		return nil
 	}
 
 	return res
