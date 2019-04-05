@@ -934,6 +934,7 @@ func (p *parser) parseExpressionStatement() *ParseTreeNode {
 
 func (p *parser) parseNode() *ParseTreeNode {
 	start := p.pos
+	startingTok := p.next()
 
 	res := &ParseTreeNode{}
 
@@ -960,7 +961,7 @@ func (p *parser) parseNode() *ParseTreeNode {
 		p.expect(";")
 
 	default:
-		p.error(api.NewUnimplementedError(p.next().Value, start, p.pos))
+		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
 	}
 
 	return res
