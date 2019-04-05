@@ -81,8 +81,14 @@ func main() {
 		port = p
 	}
 
+	ip := "localhost"
+	if envIP := os.Getenv("IP"); envIP != "" {
+		fmt.Println("Running on IP", envIP)
+		ip = envIP
+	}
+
 	s := &http.Server{
-		Addr:           fmt.Sprintf("localhost:%s", port),
+		Addr:           fmt.Sprintf("%s:%s", ip, port),
 		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
