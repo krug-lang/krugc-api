@@ -77,13 +77,11 @@ func main() {
 
 	port := "8001"
 	if p := os.Getenv("PORT"); p != "" {
-		fmt.Println("Running on port", p)
 		port = p
 	}
 
 	ip := "localhost"
 	if envIP := os.Getenv("IP"); envIP != "" {
-		fmt.Println("Running on IP", envIP)
 		ip = envIP
 	}
 
@@ -94,5 +92,6 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
+	fmt.Println("Started on", s.Addr)
 	s.ListenAndServe()
 }
