@@ -970,9 +970,14 @@ func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &parser{stream, 0, []api.CompilerError{}}
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
-		if node := p.parseNode(); node != nil {
-			nodes = append(nodes, node)
+		node := p.parseNode()
+
+		// if we get a nil node, get outta here.
+		if node == nil {
+			break
 		}
+
+		nodes = append(nodes, node)
 	}
 	return nodes, p.errors
 }
