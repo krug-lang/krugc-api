@@ -932,13 +932,26 @@ func (p *parser) parseExpressionStatement() *ParseTreeNode {
 	return nil
 }
 
-func (p *parser) parseNode() *ParseTreeNode {
+// parseNode returns whether the node was parsed
+// with error or not, as well as the node. for example
+// parsing a comment returns a nil node, but the
+// parse was OK to do. however an error returns a nil node
+// but it was not OK
+func (p *parser) parseNode() (bool, *ParseTreeNode) {
 	start := p.pos
 	startingTok := p.next()
 
 	res := &ParseTreeNode{}
 
 	switch curr := p.next(); {
+	case curr.Kind == SingleLineComment:
+		p.consume()
+		return true, nil
+
+	case curr.Kind == MultiLineComment:
+		p.consume()
+		return true, nil
+
 	case curr.Matches(struc):
 		res.StructureDeclaration = p.parseStructureDeclaration()
 		res.Kind = StructureDeclStatement
@@ -962,24 +975,24 @@ func (p *parser) parseNode() *ParseTreeNode {
 
 	default:
 		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
-		return nil
+		return false, nil
 	}
 
-	return res
+	return true, res
 }
 
 func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &parser{stream, 0, []api.CompilerError{}}
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
-		node := p.parseNode()
-
-		// if we get a nil node, get outta here.
-		if node == nil {
+		ok, node := p.parseNode()
+		if !ok {
 			break
 		}
 
-		nodes = append(nodes, node)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
 	}
 	return nodes, p.errors
 }

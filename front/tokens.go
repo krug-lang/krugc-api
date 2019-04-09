@@ -9,12 +9,14 @@ import (
 type TokenType string
 
 const (
-	Identifier TokenType = "iden"
-	Symbol               = "sym"
-	String               = "string"
-	Char                 = "char"
-	Number               = "num"
-	EndOfFile            = "<eof>"
+	Identifier        TokenType = "iden"
+	Symbol                      = "sym"
+	String                      = "string"
+	Char                        = "char"
+	Number                      = "num"
+	SingleLineComment           = "single-line-comment"
+	MultiLineComment            = "multi-line-comment"
+	EndOfFile                   = "<eof>"
 )
 
 type Token struct {

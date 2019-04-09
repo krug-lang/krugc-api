@@ -27,6 +27,8 @@ func main() {
 
 		// parsing.
 		f.POST("/parse", front.Parse)
+
+		f.POST("/comments", front.Comments)
 	}
 
 	// intermediate representation, handles

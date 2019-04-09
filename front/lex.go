@@ -165,7 +165,7 @@ func lexMultiLine(l *lexer) stateFn {
 		}
 	}
 
-	l.ignore()
+	l.emit(MultiLineComment)
 	return lexStart
 }
 
@@ -178,7 +178,7 @@ func lexSingleLine(l *lexer) stateFn {
 		default:
 			// consume
 		case '\n':
-			l.ignore()
+			l.emit(SingleLineComment)
 			return lexStart
 		}
 	}
