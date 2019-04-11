@@ -1,12 +1,12 @@
 package front
 
-// lol
 type TypeNodeType int
 
 const (
 	UnresolvedType TypeNodeType = iota
 	PointerType
 	ArrayType
+	TupleType
 )
 
 // SomeStructureName
@@ -19,6 +19,10 @@ type PointerTypeNode struct {
 	Base *TypeNode
 }
 
+type TupleTypeNode struct {
+	Types []*TypeNode
+}
+
 // [TypeNode]
 type ArrayTypeNode struct {
 	Base *TypeNode
@@ -28,7 +32,8 @@ type ArrayTypeNode struct {
 type TypeNode struct {
 	Kind TypeNodeType
 
-	UnresolvedTypeNode *UnresolvedTypeNode
-	PointerTypeNode    *PointerTypeNode
-	ArrayTypeNode      *ArrayTypeNode
+	TupleTypeNode      *TupleTypeNode      `json:"tupleType,omitempty"`
+	UnresolvedTypeNode *UnresolvedTypeNode `json:"unresolvedType,omitempty"`
+	PointerTypeNode    *PointerTypeNode    `json:"pointerType,omitempty"`
+	ArrayTypeNode      *ArrayTypeNode      `json:"arrayType,omitempty"`
 }

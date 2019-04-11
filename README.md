@@ -50,8 +50,6 @@ It's based loosely on Rust, Go, and C.
 - minification needs to be specified in the c code gen route.
 - compression on the generated c code (Gzip), this will be done
   when there are test files that are big enough to measure performance.
-- dont use api.KrugRequest everywhere, have specific requests for each route
-  e.g. for codegen so that we can specify minification (on/off), or the indentation size, etc.
 - syntax for destructuring structures `let { a, b, c } = some_struct;`
 - module system
 

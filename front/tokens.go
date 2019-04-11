@@ -1,7 +1,6 @@
 package front
 
 import (
-	"encoding/gob"
 	"fmt"
 	"strings"
 )
@@ -23,10 +22,6 @@ type Token struct {
 	Value string
 	Kind  TokenType
 	Span  []int
-}
-
-func init() {
-	gob.Register(Token{})
 }
 
 // Matches returns if the tokens LEXEME

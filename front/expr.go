@@ -3,18 +3,19 @@ package front
 type ExpressionType string
 
 const (
-	BuiltinExpression  ExpressionType = "builtinExpr"
-	VariableExpression                = "variableExpr"
-	LiteralExpression                 = "literalExpr"
-	UnaryExpression                   = "unaryExpr"
-	BinaryExpression                  = "binaryExpr"
-	Grouping                          = "groupingExpr"
-	IndexExpression                   = "indexExpr"
-	CallExpression                    = "callExpr"
-	PathExpression                    = "pathExpr"
-	AssignStatement                   = "assignExpr"
-	ConstantExpression                = "constExpr"
-	LambdaExpression                  = "lambdaExpr"
+	BuiltinExpression     ExpressionType = "builtinExpr"
+	VariableExpression                   = "variableExpr"
+	LiteralExpression                    = "literalExpr"
+	UnaryExpression                      = "unaryExpr"
+	BinaryExpression                     = "binaryExpr"
+	Grouping                             = "groupingExpr"
+	IndexExpression                      = "indexExpr"
+	CallExpression                       = "callExpr"
+	PathExpression                       = "pathExpr"
+	AssignStatement                      = "assignExpr"
+	ConstantExpression                   = "constExpr"
+	LambdaExpression                     = "lambdaExpr"
+	InitializerExpression                = "initExpr"
 )
 
 type LambdaExpressionNode struct {
@@ -60,19 +61,38 @@ type AssignStatementNode struct {
 	RHand *ExpressionNode
 }
 
+type InitializerKind string
+
+const (
+	InitStructure InitializerKind = "init-struct"
+	InitTuple                     = "init-tuple"
+	InitArray                     = "init-array"
+)
+
+type InitializerExpressionNode struct {
+	Kind InitializerKind
+
+	// only set when Kind == InitStructure
+	// this is the Structure name usually.
+	LHand Token
+
+	Values []*ExpressionNode
+}
+
 type ExpressionNode struct {
 	Kind ExpressionType
 
-	LambdaExpressionNode   *LambdaExpressionNode   `json:"lambdaExpr,omitempty"`
-	BuiltinExpressionNode  *BuiltinExpressionNode  `json:"builtinExpr,omitempty"`
-	VariableExpressionNode *VariableExpressionNode `json:"variableExpr,omitempty"`
-	LiteralExpressionNode  *LiteralExpressionNode  `json:"literalExpr,omitempty"`
-	UnaryExpressionNode    *UnaryExpressionNode    `json:"unaryExpr,omitempty"`
-	BinaryExpressionNode   *BinaryExpressionNode   `json:"binaryExpr,omitempty"`
-	GroupingNode           *GroupingNode           `json:"groupingExpr,omitempty"`
-	IndexExpressionNode    *IndexExpressionNode    `json:"indexExpr,omitempty"`
-	CallExpressionNode     *CallExpressionNode     `json:"callExpr,omitempty"`
-	PathExpressionNode     *PathExpressionNode     `json:"pathExpr,omitempty"`
-	ConstantNode           *ConstantNode           `json:"constExpr,omitempty"`
-	AssignStatementNode    *AssignStatementNode    `json:"assignExpr,omitempty"`
+	LambdaExpressionNode      *LambdaExpressionNode      `json:"lambdaExpr,omitempty"`
+	BuiltinExpressionNode     *BuiltinExpressionNode     `json:"builtinExpr,omitempty"`
+	VariableExpressionNode    *VariableExpressionNode    `json:"variableExpr,omitempty"`
+	LiteralExpressionNode     *LiteralExpressionNode     `json:"literalExpr,omitempty"`
+	UnaryExpressionNode       *UnaryExpressionNode       `json:"unaryExpr,omitempty"`
+	BinaryExpressionNode      *BinaryExpressionNode      `json:"binaryExpr,omitempty"`
+	GroupingNode              *GroupingNode              `json:"groupingExpr,omitempty"`
+	IndexExpressionNode       *IndexExpressionNode       `json:"indexExpr,omitempty"`
+	CallExpressionNode        *CallExpressionNode        `json:"callExpr,omitempty"`
+	PathExpressionNode        *PathExpressionNode        `json:"pathExpr,omitempty"`
+	ConstantNode              *ConstantNode              `json:"constExpr,omitempty"`
+	AssignStatementNode       *AssignStatementNode       `json:"assignExpr,omitempty"`
+	InitializerExpressionNode *InitializerExpressionNode `json:"initExpr,omitempty"`
 }

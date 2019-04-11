@@ -8,18 +8,12 @@ import (
 )
 
 func TypeResolve(c *gin.Context) {
-	var krugReq api.KrugRequest
+	var krugReq api.TypeResolveRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
 
 	var irMod *ir.Module
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&irMod)
-	*/
-
 	typeMap, errors := typeResolve(irMod)
 
 	jsonIrModule, err := jsoniter.MarshalIndent(typeMap, "", "  ")
@@ -35,18 +29,12 @@ func TypeResolve(c *gin.Context) {
 }
 
 func SymbolResolve(c *gin.Context) {
-	var krugReq api.KrugRequest
+	var krugReq api.SymbolResolveRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
 
 	var irMod *ir.Module
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&irMod)
-	*/
-
 	mod, errors := symResolve(irMod)
 
 	jsonMod, err := jsoniter.MarshalIndent(mod, "", "  ")

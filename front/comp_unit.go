@@ -1,7 +1,6 @@
 package front
 
 import (
-	"encoding/gob"
 	"io/ioutil"
 	"strings"
 	"unicode"
@@ -52,10 +51,6 @@ func (k KrugCompilationUnit) GetLine(fst, snd int) (string, string) {
 	// run trimspace on the final result to remove any
 	// rubbish from the right of the string
 	return strings.TrimSpace(string(result)), string(underlined)
-}
-
-func init() {
-	gob.Register(KrugCompilationUnit{})
 }
 
 func ReadCompUnit(loc string) KrugCompilationUnit {

@@ -20,8 +20,8 @@ import (
 */
 
 func BuildType(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
+	var buildTypeMapReq api.BuildTypeMapRequest
+	if err := c.BindJSON(&buildTypeMapReq); err != nil {
 		panic(err)
 	}
 
@@ -29,12 +29,6 @@ func BuildType(c *gin.Context) {
 		ScopeMap *ir.ScopeMap
 		Module   *ir.Module
 	}
-
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&payload)
-	*/
 
 	typedMod, errs := declType(payload.ScopeMap, payload.Module)
 
@@ -56,18 +50,12 @@ func BuildType(c *gin.Context) {
 // this should, however, just return the
 // stab tree structure?
 func BuildScope(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
+	var scopeMapReq api.BuildScopeMapRequest
+	if err := c.BindJSON(&scopeMapReq); err != nil {
 		panic(err)
 	}
 
 	var irMod *ir.Module
-	/*
-			pCache := bytes.NewBuffer(krugReq.Data)
-		decCache := gob.NewDecoder(pCache)
-		decCache.Decode(&irMod)
-	*/
-
 	scopeMap, errs := buildScope(irMod)
 
 	jsonScopeMap, err := jsoniter.MarshalIndent(scopeMap, "", "  ")

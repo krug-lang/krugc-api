@@ -23,6 +23,7 @@ const (
 	PathValue             = "Path"
 	IndexValue            = "Index"
 	AssignValue           = "Assign"
+	InitValue             = "Init"
 )
 
 type Value struct {
@@ -39,6 +40,7 @@ type Value struct {
 	Call             *Call
 	Path             *Path
 	Index            *Index
+	Init             *Init
 }
 
 // FIXME! this is shit
@@ -225,6 +227,22 @@ func (p *Path) InferredType() *Type {
 
 func NewPath(values []*Value) *Path {
 	return &Path{values}
+}
+
+// INIT
+
+type Init struct {
+	Kind   front.InitializerKind
+	LHand  *Identifier
+	Values []*Value
+}
+
+func (i *Init) InferredType() *Type {
+	panic("shit")
+}
+
+func NewInit(kind front.InitializerKind, lhand *Identifier, values []*Value) *Init {
+	return &Init{kind, lhand, values}
 }
 
 // INDEX

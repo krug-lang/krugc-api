@@ -14,14 +14,14 @@ import (
 // Build takes the given []ParseTree's
 // and builds a SINGLE ir module from them.
 func Build(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
+	var irBuildReq api.IRBuildRequest
+	if err := c.BindJSON(&irBuildReq); err != nil {
 		panic(err)
 	}
 
 	var trees [][]*front.ParseTreeNode
 
-	if err := jsoniter.Unmarshal([]byte(krugReq.Data), &trees); err != nil {
+	if err := jsoniter.Unmarshal([]byte(irBuildReq.TreeNodes), &trees); err != nil {
 		panic(err)
 	}
 
@@ -66,13 +66,21 @@ func (b *builder) buildPointerType(p *front.PointerTypeNode) *PointerType {
 
 func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
 	// TODO should be constant expr.
-	size := b.buildExpr(p.Size)
+	// size := b.buildExpr(p.Size)
 
 	base := b.buildType(p.Base)
 	return &Type{
-		Kind:      ArrayKind,
-		ArrayType: NewArrayType(base, size),
+		Kind:    PointerKind,
+		Pointer: NewPointerType(base),
 	}
+}
+
+func (b *builder) buildTupleType(tup *front.TupleTypeNode) *TupleType {
+	types := []*Type{}
+	for _, typ := range tup.Types {
+		types = append(types, b.buildType(typ))
+	}
+	return NewTupleType(types)
 }
 
 func (b *builder) buildType(node *front.TypeNode) *Type {
@@ -85,6 +93,10 @@ func (b *builder) buildType(node *front.TypeNode) *Type {
 	case front.PointerType:
 		resp.Pointer = b.buildPointerType(node.PointerTypeNode)
 		resp.Kind = PointerKind
+
+	case front.TupleType:
+		resp.Tuple = b.buildTupleType(node.TupleTypeNode)
+		resp.Kind = TupleKind
 
 	case front.ArrayType:
 		return b.buildArrayType(node.ArrayTypeNode)
@@ -222,6 +234,23 @@ func (b *builder) buildLambda(expr *front.LambdaExpressionNode) *Value {
 	return &Value{}
 }
 
+func (b *builder) buildInitializerList(init *front.InitializerExpressionNode) *Value {
+	vals := []*Value{}
+	for _, expr := range init.Values {
+		vals = append(vals, b.buildExpr(expr))
+	}
+
+	var iden *Identifier
+	if init.Kind == front.InitStructure {
+		iden = NewIdentifier(init.LHand)
+	}
+
+	return &Value{
+		Kind: InitValue,
+		Init: NewInit(init.Kind, iden, vals),
+	}
+}
+
 func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 	switch expr.Kind {
 	case front.ConstantExpression:
@@ -253,6 +282,9 @@ func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 
 	case front.IndexExpression:
 		return b.buildIndexExpression(expr.IndexExpressionNode)
+
+	case front.InitializerExpression:
+		return b.buildInitializerList(expr.InitializerExpressionNode)
 
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", expr.Kind))

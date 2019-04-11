@@ -8,18 +8,15 @@ import (
 )
 
 func Comments(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindUri(&krugReq); err != nil {
+	var commentReq api.CommentsRequest
+	if err := c.BindJSON(&commentReq); err != nil {
 		panic(err)
 	}
 
-	code := string(krugReq.Data)
-
-	tokens, errors := tokenizeInput(code)
+	tokens, errors := tokenizeInput(commentReq.Input, false)
 
 	result := []Token{}
 
-	// for now we filter into a new tokens array
 	// all of the comment tokens.
 	for _, tok := range tokens {
 		switch tok.Kind {
@@ -43,13 +40,13 @@ func Comments(c *gin.Context) {
 }
 
 func Parse(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
+	var parseReq api.ParseRequest
+	if err := c.BindJSON(&parseReq); err != nil {
 		panic(err)
 	}
 
 	var stream []Token
-	if err := jsoniter.Unmarshal([]byte(krugReq.Data), &stream); err != nil {
+	if err := jsoniter.Unmarshal([]byte(parseReq.Input), &stream); err != nil {
 		panic(err)
 	}
 
@@ -68,14 +65,12 @@ func Parse(c *gin.Context) {
 }
 
 func Tokenize(c *gin.Context) {
-	var krugReq api.KrugRequest
-	if err := c.BindJSON(&krugReq); err != nil {
+	var lexReq api.LexerRequest
+	if err := c.BindJSON(&lexReq); err != nil {
 		panic(err)
 	}
 
-	code := string(krugReq.Data)
-
-	tokens, errors := tokenizeInput(code)
+	tokens, errors := tokenizeInput(lexReq.Input, true)
 
 	jsonResp, err := jsoniter.MarshalIndent(tokens, "", "  ")
 	if err != nil {

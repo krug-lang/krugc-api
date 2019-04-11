@@ -12,11 +12,12 @@ import (
 const eof = -1
 
 type lexer struct {
-	input  []byte
-	pos    int
-	start  int
-	width  int
-	stream []Token
+	input        []byte
+	pos          int
+	start        int
+	width        int
+	stream       []Token
+	skipComments bool
 }
 
 type stateFn func(*lexer) stateFn
@@ -165,7 +166,11 @@ func lexMultiLine(l *lexer) stateFn {
 		}
 	}
 
-	l.emit(MultiLineComment)
+	if !l.skipComments {
+		l.emit(MultiLineComment)
+	} else {
+		l.ignore()
+	}
 	return lexStart
 }
 
@@ -178,7 +183,11 @@ func lexSingleLine(l *lexer) stateFn {
 		default:
 			// consume
 		case '\n':
-			l.emit(SingleLineComment)
+			if !l.skipComments {
+				l.emit(SingleLineComment)
+			} else {
+				l.ignore()
+			}
 			return lexStart
 		}
 	}
@@ -232,9 +241,10 @@ func lexStart(l *lexer) stateFn {
 	}
 }
 
-func tokenizeInput(input string) ([]Token, []api.CompilerError) {
+func tokenizeInput(code string, skipComments bool) ([]Token, []api.CompilerError) {
 	l := &lexer{
-		[]byte(input), 0, 0, 0, []Token{},
+		[]byte(code), 0, 0, 0, []Token{},
+		skipComments,
 	}
 	for s := lexStart; s != nil; {
 		s = s(l)

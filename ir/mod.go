@@ -1,14 +1,8 @@
 package ir
 
 import (
-	"encoding/gob"
-
 	"github.com/hugobrains/caasper/front"
 )
-
-func init() {
-	gob.Register(&Module{})
-}
 
 // MODULE
 

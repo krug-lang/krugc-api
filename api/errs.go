@@ -1,13 +1,8 @@
 package api
 
 import (
-	"encoding/gob"
 	"fmt"
 )
-
-func init() {
-	gob.Register(CompilerError{})
-}
 
 type CompilerError struct {
 	Title       string

@@ -66,6 +66,10 @@ func (p *parser) expectKind(kind TokenType) (tok Token) {
 	return BadToken
 }
 
+func (p *parser) rewind() {
+	p.pos--
+}
+
 func (p *parser) consume() (tok Token) {
 	tok = p.toks[p.pos]
 	p.pos++
@@ -129,6 +133,34 @@ func (p *parser) parseUnresolvedType() *TypeNode {
 	}
 }
 
+func (p *parser) parseTupleType() *TypeNode {
+	p.expect("(")
+	var types []*TypeNode
+	for p.hasNext() {
+		if p.next().Matches(",") {
+			p.consume()
+		}
+
+		if p.next().Matches(")") {
+			break
+		}
+
+		if typ := p.parseType(); typ != nil {
+			types = append(types, typ)
+		} else {
+			// TODO. handle me!
+		}
+	}
+	p.expect(")")
+
+	return &TypeNode{
+		Kind: TupleType,
+		TupleTypeNode: &TupleTypeNode{
+			types,
+		},
+	}
+}
+
 func (p *parser) parseType() *TypeNode {
 	start := p.pos
 	switch curr := p.next(); {
@@ -136,6 +168,8 @@ func (p *parser) parseType() *TypeNode {
 		return p.parsePointerType()
 	case curr.Matches("["):
 		return p.parseArrayType()
+	case curr.Matches("("):
+		return p.parseTupleType()
 	case curr.Kind == Identifier:
 		return p.parseUnresolvedType()
 	default:
@@ -736,9 +770,79 @@ func (p *parser) parseLambda() *ExpressionNode {
 	}
 }
 
+func (p *parser) parseInitializer() *ExpressionNode {
+	curr := p.consume()
+
+	var initKind InitializerKind
+	switch curr.Value {
+	case "#":
+		initKind = InitStructure
+	case "(":
+		initKind = InitTuple
+	case "[":
+		initKind = InitArray
+	}
+
+	var lhand Token
+
+	// check if () or []
+	if curr.Matches("(", "[") {
+		if !p.hasNext() {
+			p.rewind()
+			return nil
+		}
+
+		opp := "]"
+		if curr.Matches("(") {
+			opp = ")"
+		}
+
+		if !p.next().Matches(opp) {
+			p.rewind()
+			return nil
+		}
+
+		// consume the closing paren
+		p.expect(opp)
+	} else if curr.Matches("#") {
+		lhand = p.expectKind(Identifier)
+	}
+
+	p.expect("{")
+	var els []*ExpressionNode
+	for p.hasNext() {
+		if p.next().Matches(",") {
+			p.consume()
+		}
+
+		if p.next().Matches("}") {
+			break
+		}
+
+		expr := p.parseExpression()
+		if expr != nil {
+			els = append(els, expr)
+		}
+	}
+	p.expect("}")
+
+	return &ExpressionNode{
+		Kind: InitializerExpression,
+		InitializerExpressionNode: &InitializerExpressionNode{
+			Kind:   initKind,
+			LHand:  lhand,
+			Values: els,
+		},
+	}
+}
+
 func (p *parser) parsePrimaryExpr() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
+	}
+
+	if p.next().Matches("#", "(", "[") {
+		return p.parseInitializer()
 	}
 
 	if p.next().Matches(fn) {
@@ -937,21 +1041,13 @@ func (p *parser) parseExpressionStatement() *ParseTreeNode {
 // parsing a comment returns a nil node, but the
 // parse was OK to do. however an error returns a nil node
 // but it was not OK
-func (p *parser) parseNode() (bool, *ParseTreeNode) {
+func (p *parser) parseNode() *ParseTreeNode {
 	start := p.pos
 	startingTok := p.next()
 
 	res := &ParseTreeNode{}
 
 	switch curr := p.next(); {
-	case curr.Kind == SingleLineComment:
-		p.consume()
-		return true, nil
-
-	case curr.Kind == MultiLineComment:
-		p.consume()
-		return true, nil
-
 	case curr.Matches(struc):
 		res.StructureDeclaration = p.parseStructureDeclaration()
 		res.Kind = StructureDeclStatement
@@ -975,24 +1071,21 @@ func (p *parser) parseNode() (bool, *ParseTreeNode) {
 
 	default:
 		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
-		return false, nil
+		return nil
 	}
 
-	return true, res
+	return res
 }
 
 func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &parser{stream, 0, []api.CompilerError{}}
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
-		ok, node := p.parseNode()
-		if !ok {
+		node := p.parseNode()
+		if node == nil {
 			break
 		}
-
-		if node != nil {
-			nodes = append(nodes, node)
-		}
+		nodes = append(nodes, node)
 	}
 	return nodes, p.errors
 }

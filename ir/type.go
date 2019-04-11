@@ -16,6 +16,7 @@ const (
 	VoidKind             = "void"
 	StructKind           = "struct"
 	PointerKind          = "ptr"
+	TupleKind            = "tuple"
 	ReferenceKind        = "ref"
 )
 
@@ -27,6 +28,7 @@ type Type struct {
 	IntegerType  *IntegerType
 	ArrayType    *ArrayType
 	Function     *Function
+	Tuple        *TupleType
 	Structure    *Structure
 	Pointer      *PointerType
 	Reference    *ReferenceType
@@ -150,6 +152,20 @@ func (r *ReferenceType) String() string {
 
 func NewReferenceType(name string) *ReferenceType {
 	return &ReferenceType{name}
+}
+
+// TUPLE TYPE
+
+type TupleType struct {
+	Types []*Type
+}
+
+func (t *TupleType) String() string {
+	return fmt.Sprintf("%s", t.Types)
+}
+
+func NewTupleType(types []*Type) *TupleType {
+	return &TupleType{types}
 }
 
 // ARRAY TYPE

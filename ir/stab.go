@@ -1,16 +1,10 @@
 package ir
 
 import (
-	"encoding/gob"
 	"math/rand"
 
 	"github.com/hugobrains/caasper/front"
 )
-
-func init() {
-	gob.Register(&SymbolTable{})
-	gob.Register(&Symbol{})
-}
 
 type SymbolValue interface {
 	SymbolTypeName() string
