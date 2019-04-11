@@ -1,6 +1,9 @@
 package front
 
 import (
+	"io/ioutil"
+	"strings"
+
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
@@ -64,13 +67,33 @@ func Parse(c *gin.Context) {
 	c.JSON(200, &resp)
 }
 
+// Tokenize is the route that handles tokenisation of files.
+// It takes api.LexerRequest as the input, containing either
+// the code of the file, or the path which must be prefixed
+// with an @ symbol.
+// If the @ symbol is present, the file is loaded from the
+// absolute path provided.
+//
+// There should be some restrictions on this perhaps... otherwise
+// people could 'lex' password files or something.
+// Maybe the files must end with a '.krug' extension?
 func Tokenize(c *gin.Context) {
 	var lexReq api.LexerRequest
 	if err := c.BindJSON(&lexReq); err != nil {
 		panic(err)
 	}
 
-	tokens, errors := tokenizeInput(lexReq.Input, true)
+	code := lexReq.Input
+	if code[0] == '@' {
+		filePath := strings.Split(code, "@")[1]
+		data, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			panic(err)
+		}
+		code = string(data)
+	}
+
+	tokens, errors := tokenizeInput(code, true)
 
 	jsonResp, err := jsoniter.MarshalIndent(tokens, "", "  ")
 	if err != nil {
