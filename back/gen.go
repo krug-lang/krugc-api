@@ -115,14 +115,15 @@ func (e *emitter) emitTupleType(tup *ir.TupleType) string {
 		if idx != 0 {
 			structTypes += " "
 		}
-		structTypes += fmt.Sprintf("%s _%d;", e.writeType(typ), idx)
+		fieldName := fmt.Sprintf("_%d", idx)
+		structTypes += e.emitTypedName(true, typ, fieldName)
 	}
 	return fmt.Sprintf("struct { %s }", structTypes)
 }
 
 // HM
 func (e *emitter) writeArray(typ *ir.ArrayType) string {
-	return fmt.Sprintf("%s*", e.writeType(typ.Base))
+	return fmt.Sprintf("%s", e.writeType(typ.Base))
 }
 
 func (e *emitter) writeType(typ *ir.Type) string {
@@ -157,11 +158,44 @@ func (e *emitter) writeType(typ *ir.Type) string {
 
 }
 
+func (e *emitter) emitTypedName(mutable bool, t *ir.Type, name string) string {
+	genType := e.writeType(t)
+
+	// we have to move the array to the end of the
+	// typed name because C
+	var result string
+	if t.Kind == ir.ArrayKind {
+		val := e.buildExpr(t.ArrayType.Size)
+		result = fmt.Sprintf("%s %s[%s]", genType, name, val)
+	} else {
+		result = fmt.Sprintf("%s %s", genType, name)
+	}
+
+	// append the mutability modifier
+	var modifier string
+	if !mutable {
+		modifier = "const "
+	}
+	return fmt.Sprintf("%s%s", modifier, result)
+}
+
+// FIXME
 func (e *emitter) buildAlloca(a *ir.Alloca) {
-	aType := e.writeType(a.Type)
-	e.writetln(e.indentLevel, "%s %s = malloc(sizeof(*%s));", aType, a.Name, a.Name)
+	typedName := e.emitTypedName(true, a.Type, a.Name.Value)
+	e.writetln(e.indentLevel, "%s = malloc(sizeof(*%s));", typedName, a.Name.Value)
 
 	// TODO init list.
+}
+
+func (e *emitter) buildAllocBuiltin(b *ir.Builtin) string {
+	bType := e.writeType(b.Type)
+
+	// always 1 * sizeof unless specified.
+	num := "1"
+	if len(b.Args) > 0 {
+		num = e.buildExpr(b.Args[0])
+	}
+	return fmt.Sprintf("malloc(sizeof(%s) * %s)", bType, num)
 }
 
 func (e *emitter) buildBuiltin(b *ir.Builtin) string {
@@ -169,8 +203,10 @@ func (e *emitter) buildBuiltin(b *ir.Builtin) string {
 	switch b.Name {
 	case "sizeof":
 		return fmt.Sprintf("sizeof(%s)", bType)
-	case "make":
-		return fmt.Sprintf("malloc(sizeof(%s))", bType)
+	case "alloc":
+		return e.buildAllocBuiltin(b)
+	case "free":
+		return fmt.Sprintf("free(%s)", bType)
 	default:
 		panic(fmt.Sprintf("unimplemented builtin %s", b.Name))
 	}
@@ -186,6 +222,24 @@ func (e *emitter) writeInitExpr(i *ir.Init) string {
 		return ""
 	}
 	panic(fmt.Sprintf("unimplemented int expr %s", i.Kind))
+}
+
+func (e *emitter) buildUnary(u *ir.UnaryExpression) string {
+	value := e.buildExpr(u.Val)
+	op := func(op string) string {
+		switch op {
+		case "@":
+			return "*"
+		}
+		return op
+	}(u.Op)
+	return fmt.Sprintf("(%s(%s))", op, value)
+}
+
+func (e *emitter) buildIndex(i *ir.Index) string {
+	lhand := e.buildExpr(i.Left)
+	sub := e.buildExpr(i.Sub)
+	return fmt.Sprintf("%s[%s]", lhand, sub)
 }
 
 func (e *emitter) buildExpr(l *ir.Value) string {
@@ -222,9 +276,10 @@ func (e *emitter) buildExpr(l *ir.Value) string {
 		return e.buildBuiltin(val)
 
 	case ir.UnaryExpressionValue:
-		val := l.UnaryExpression
-		value := e.buildExpr(val.Val)
-		return fmt.Sprintf("(*%s)", value)
+		return e.buildUnary(l.UnaryExpression)
+
+	case ir.IndexValue:
+		return e.buildIndex(l.Index)
 
 	case ir.AssignValue:
 		val := l.Assign
@@ -273,48 +328,27 @@ func (e *emitter) buildInitializerFor(l *ir.Local, init *ir.Init) {
 		break
 
 	case front.InitArray:
-		var genLit string
+		// this is annoying but it works for now.
 		for idx, expr := range init.Values {
-			if idx != 0 {
-				genLit += ","
-			}
-			genLit += e.buildExpr(expr)
+			val := e.buildExpr(expr)
+			e.writetln(e.indentLevel, "%s[%d] = %s;", localName, idx, val)
 		}
-
-		// this is a massive hack for now, all arrays are
-		// changed into pointer types
-
-		// we then create an actual array and set the pointer
-		// to point at it.
-
-		// HACK, all arrays are changed into a pointer type.
-		genType := e.writeType(e.removePointer(l.Type))
-		e.writetln(e.indentLevel, "%s _%s_raw_arr[] = {%s};", genType, localName, genLit)
-
-		e.writetln(e.indentLevel, "%s = _%s_raw_arr;", localName, localName)
 	}
 }
 
 func (e *emitter) buildLocal(l *ir.Local) {
-	aType := e.writeType(l.Type)
-	modifier := ""
-	if !l.Mutable {
-		modifier = "const "
-	}
-
-	valueCode := ";"
+	localValue := ";"
 	if l.Val != nil {
-		// initializer is emitted AFTER the variable.
 		if l.Val.Kind != ir.InitValue {
-			valueCode = fmt.Sprintf(" = %s;", e.buildExpr(l.Val))
+			// initializer is emitted AFTER the variable.
+			localValue = fmt.Sprintf(" = %s;", e.buildExpr(l.Val))
+		} else {
+			defer e.buildInitializerFor(l, l.Val.Init)
 		}
 	}
 
-	e.writetln(e.indentLevel, "%s%s %s%s", modifier, aType, l.Name.Value, valueCode)
-
-	if l.Val != nil && l.Val.Kind == ir.InitValue {
-		e.buildInitializerFor(l, l.Val.Init)
-	}
+	typedName := e.emitTypedName(l.Mutable, l.Type, l.Name.Value)
+	e.writetln(e.indentLevel, "%s%s", typedName, localValue)
 }
 
 func (e *emitter) buildRet(r *ir.Return) {
@@ -464,9 +498,8 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 
 	for _, name := range st.Fields.Order {
 		t := st.Fields.Get(name.Value)
-
-		typ := e.writeType(t)
-		e.writetln(e.indentLevel, "%s %s;", typ, name.Value)
+		typedName := e.emitTypedName(true, t, name.Value)
+		e.writetln(e.indentLevel, "%s;", typedName)
 	}
 	e.indentLevel--
 
@@ -492,7 +525,8 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 			if idx != 0 {
 				argList += ", "
 			}
-			argList += fmt.Sprintf("%s %s", e.writeType(t), name.Value)
+			// TODO mutability of parameters.
+			argList += e.emitTypedName(fn.MutabilityTable[idx], t, name.Value)
 			idx++
 		}
 		return argList
@@ -534,6 +568,14 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		e.writeln(`#include <%s>`, h)
 	}
 
+	globalVariables := []string{
+		"static int arg_count;",
+		"static char** arguments;",
+	}
+	for _, v := range globalVariables {
+		e.writeln(v)
+	}
+
 	for _, st := range mod.Structures {
 		e.emitStructure(st)
 	}
@@ -544,9 +586,16 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		e.emitFunc(fn)
 	}
 
+	const runtime = `
+int main(int argc, char** argv) { 
+	arg_count = argc;
+	arguments = argv;
+	return krug_main(); 
+}`
+
 	// for now we manually write the main func
 	e.retarget(&e.source)
-	e.writeln(`int main() { return krug_main(); }`)
+	e.writeln(runtime)
 
 	return string(e.decl + e.source), []api.CompilerError{}
 }

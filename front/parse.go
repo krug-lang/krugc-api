@@ -1,6 +1,7 @@
 package front
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -164,7 +165,7 @@ func (p *parser) parseTupleType() *TypeNode {
 func (p *parser) parseType() *TypeNode {
 	start := p.pos
 	switch curr := p.next(); {
-	case curr.Matches("^"):
+	case curr.Matches("*"):
 		return p.parsePointerType()
 	case curr.Matches("["):
 		return p.parseArrayType()
@@ -199,8 +200,11 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 			p.error(api.NewParseError("type", start, p.pos))
 		}
 
-		// FIXME
-		fields = append(fields, &NamedType{name, typ})
+		// NOTE: structure fields are mutable by default.
+		// immutable structure fields will not be an option
+		// in the future as it's too confusing and doesn't
+		// really make sense.
+		fields = append(fields, &NamedType{true, name, typ})
 
 		// trailing commas are enforced.
 		p.expect(",")
@@ -232,13 +236,19 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 			p.expect(",")
 		}
 
+		mutable := false
+		if p.next().Matches(mut) {
+			mutable = true
+			p.consume()
+		}
+
 		name := p.expectKind(Identifier)
 		typ := p.parseType()
 		if typ == nil {
 			p.error(api.NewParseError("type after pointer", start, p.pos))
 		}
 
-		args = append(args, &NamedType{name, typ})
+		args = append(args, &NamedType{mutable, name, typ})
 	}
 	p.expect(")")
 
@@ -630,8 +640,7 @@ func (p *parser) parseTraitDeclaration() *TraitDeclaration {
 }
 
 func (p *parser) parseUnaryExpr() *ExpressionNode {
-	// TODO other unary ops.
-	if !p.hasNext() || !p.next().Matches("-", "!", "+", "@") {
+	if !p.hasNext() || !p.next().Matches(unaryOperators...) {
 		return nil
 	}
 
@@ -738,13 +747,30 @@ func (p *parser) parseBuiltin() *ExpressionNode {
 		p.error(api.NewParseError("type in builtin", start, p.pos))
 	}
 
+	args := []*ExpressionNode{}
+
 	if parens {
+		for p.hasNext() {
+			if p.next().Matches(",") {
+				p.consume()
+			}
+			if p.next().Matches(")") {
+				break
+			}
+
+			arg := p.parseExpression()
+			if arg != nil {
+				args = append(args, arg)
+			} else {
+				// TODO handle this error.
+			}
+		}
 		p.expect(")")
 	}
 
 	return &ExpressionNode{
 		Kind:                  BuiltinExpression,
-		BuiltinExpressionNode: &BuiltinExpressionNode{builtin.Value, typ},
+		BuiltinExpressionNode: &BuiltinExpressionNode{builtin.Value, typ, args},
 	}
 }
 
@@ -807,12 +833,14 @@ func (p *parser) parseInitializer() *ExpressionNode {
 
 	var initKind InitializerKind
 	switch curr.Value {
-	case "#":
+	case ":":
 		initKind = InitStructure
 	case "(":
 		initKind = InitTuple
 	case "[":
 		initKind = InitArray
+	default:
+		panic(fmt.Sprintf("bad initializer type %s", curr))
 	}
 
 	var lhand Token
@@ -836,7 +864,7 @@ func (p *parser) parseInitializer() *ExpressionNode {
 
 		// consume the closing paren
 		p.expect(opp)
-	} else if curr.Matches("#") {
+	} else if curr.Matches(":") {
 		lhand = p.expectKind(Identifier)
 	}
 
@@ -873,22 +901,24 @@ func (p *parser) parsePrimaryExpr() *ExpressionNode {
 		return nil
 	}
 
-	if p.next().Matches("#", "(", "[") {
-		return p.parseInitializer()
+	if p.next().Matches(":", "(", "[") {
+		init := p.parseInitializer()
+		if init != nil {
+			return init
+		}
 	}
 
 	if p.next().Matches(fn) {
 		return p.parseLambda()
 	}
 
-	// TODO unary ops.
-	if p.next().Matches("!", "@", "+", "-") {
+	if p.next().Matches(unaryOperators...) {
 		return p.parseUnaryExpr()
 	}
 
 	// builtins.
 	switch curr := p.next(); {
-	case curr.Matches("make", "sizeof", "len", "delete"):
+	case curr.Matches(builtins...):
 		return p.parseBuiltin()
 	}
 
@@ -897,7 +927,6 @@ func (p *parser) parsePrimaryExpr() *ExpressionNode {
 		return nil
 	}
 
-	// TODO give left to these calls.
 	switch curr := p.next(); {
 	case curr.Matches("["):
 		return p.parseIndex(left)
@@ -996,8 +1025,6 @@ func (p *parser) parseAssign(left *ExpressionNode) *ExpressionNode {
 		return nil
 	}
 
-	// TODO check if op is valid assign op
-
 	start := p.pos
 	op := p.consume()
 
@@ -1035,6 +1062,16 @@ func (p *parser) parseDotList(left *ExpressionNode) *ExpressionNode {
 	}
 }
 
+var assignOperators = []string{
+	"=", "+=", "-=", "*=", "/=",
+}
+var unaryOperators = []string{
+	"-", "!", "+", "@", "&", "~",
+}
+var builtins = []string{
+	"alloc", "sizeof", "len", "free",
+}
+
 func (p *parser) parseExpression() *ExpressionNode {
 	left := p.parseLeft()
 	if left == nil {
@@ -1045,8 +1082,7 @@ func (p *parser) parseExpression() *ExpressionNode {
 		return p.parseDotList(left)
 	}
 
-	// FIXME
-	if p.next().Matches("=", "+=", "-=", "*=", "/=") {
+	if p.next().Matches(assignOperators...) {
 		return p.parseAssign(left)
 	}
 

@@ -26,8 +26,9 @@ const (
 )
 
 type NamedType struct {
-	Name Token
-	Type *TypeNode
+	Mutable bool
+	Name    Token
+	Type    *TypeNode
 }
 
 type BlockNode struct {

@@ -251,19 +251,20 @@ func NewStructure(name front.Token, fields *TypeDict) *Structure {
 // FUNCTION
 
 type Function struct {
-	Name       front.Token
-	Stab       *SymbolTable
-	Param      *TypeDict
-	ReturnType *Type
-	Body       *Block
+	Name            front.Token
+	MutabilityTable []bool
+	Stab            *SymbolTable
+	Param           *TypeDict
+	ReturnType      *Type
+	Body            *Block
 }
 
 func (f *Function) String() string {
 	return f.ReturnType.String()
 }
 
-func NewFunction(name front.Token, params *TypeDict, ret *Type) *Function {
-	return &Function{name, nil, params, ret, NewBlock()}
+func NewFunction(name front.Token, mutabilityTable []bool, params *TypeDict, ret *Type) *Function {
+	return &Function{name, mutabilityTable, nil, params, ret, NewBlock()}
 }
 
 type UnclaimedMethod struct {

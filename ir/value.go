@@ -189,6 +189,7 @@ func NewIdentifier(name front.Token) *Identifier {
 type Builtin struct {
 	Name string
 	Type *Type
+	Args []*Value
 }
 
 func (b *Builtin) InferredType() *Type {
@@ -196,8 +197,8 @@ func (b *Builtin) InferredType() *Type {
 	return b.Type
 }
 
-func NewBuiltin(name string, typ *Type) *Builtin {
-	return &Builtin{name, typ}
+func NewBuiltin(name string, typ *Type, args []*Value) *Builtin {
+	return &Builtin{name, typ, args}
 }
 
 // CALL

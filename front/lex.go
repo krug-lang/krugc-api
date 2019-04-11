@@ -95,6 +95,21 @@ func lexNumber(l *lexer) stateFn {
 	return lexStart
 }
 
+func lexChar(l *lexer) stateFn {
+	if !l.accept(`'`) {
+		panic("expect")
+	}
+	for {
+		switch r := l.consume(); {
+		default:
+			// consume
+		case r == '\'':
+			l.emit(Char)
+			return lexStart
+		}
+	}
+}
+
 func lexQuote(l *lexer) stateFn {
 	if !l.accept(`"`) {
 		panic("expect")
@@ -226,6 +241,9 @@ func lexStart(l *lexer) stateFn {
 	case isSymbol(c):
 		l.rewind()
 		return lexSymbol
+	case c == '\'':
+		l.rewind()
+		return lexChar
 	case c == '"':
 		l.rewind()
 		return lexQuote
@@ -266,7 +284,7 @@ func init() {
 		'+', '-', '/', '*', '%', '=',
 		'(', ')', '{', '}', '[', ']', '<', '>',
 		'.', '$', '!', '?', '#', '/', ',', '|', '&',
-		'_', '~', ';', ':', '@', '^',
+		'_', '~', ';', ':', '@', '^', '\'',
 	)
 }
 

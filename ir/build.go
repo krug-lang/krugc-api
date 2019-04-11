@@ -66,12 +66,12 @@ func (b *builder) buildPointerType(p *front.PointerTypeNode) *PointerType {
 
 func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
 	// TODO should be constant expr.
-	// size := b.buildExpr(p.Size)
+	size := b.buildExpr(p.Size)
 
 	base := b.buildType(p.Base)
 	return &Type{
-		Kind:    PointerKind,
-		Pointer: NewPointerType(base),
+		Kind:      ArrayKind,
+		ArrayType: NewArrayType(base, size),
 	}
 }
 
@@ -141,9 +141,13 @@ func (b *builder) buildGrouping(g *front.GroupingNode) *Value {
 }
 
 func (b *builder) buildBuiltin(e *front.BuiltinExpressionNode) *Value {
+	args := make([]*Value, len(e.Args))
+	for i, arg := range e.Args {
+		args[i] = b.buildExpr(arg)
+	}
 	return &Value{
 		Kind:    BuiltinValue,
-		Builtin: NewBuiltin(e.Name, b.buildType(e.Type)),
+		Builtin: NewBuiltin(e.Name, b.buildType(e.Type), args),
 	}
 }
 
@@ -491,9 +495,12 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 }
 
 func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
+	mutabilityTable := make([]bool, len(node.Arguments))
+
 	params := newTypeDict()
-	for _, p := range node.Arguments {
+	for i, p := range node.Arguments {
 		params.Set(p.Name, b.buildType(p.Type))
+		mutabilityTable[i] = p.Mutable
 	}
 
 	ret := Void
@@ -501,7 +508,7 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 		ret = b.buildType(node.ReturnType)
 	}
 
-	fn := NewFunction(node.Name, params, ret)
+	fn := NewFunction(node.Name, mutabilityTable, params, ret)
 	fn.Body = b.buildBlock(node.Body)
 	return fn
 }
