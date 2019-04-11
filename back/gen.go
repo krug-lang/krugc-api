@@ -252,9 +252,16 @@ func (e *emitter) buildExpr(l *ir.Value) string {
 		val := l.FloatingValue
 		return fmt.Sprintf("%f", val.Value)
 
+	case ir.CharacterValueValue:
+		val := l.CharacterValue
+		return fmt.Sprintf(`%s`, val.Value)
+
 	case ir.StringValueValue:
 		val := l.StringValue
-		return val.Value
+		containedString := val.Value[1 : len(val.Value)-1]
+		// if it's a raw string for example, we convert
+		// it into a normal quote so `foo` becomes "foo"
+		return fmt.Sprintf(`"%s"`, containedString)
 
 	case ir.BinaryExpressionValue:
 		val := l.BinaryExpression
@@ -456,6 +463,10 @@ func (e *emitter) buildInstr(i *ir.Instruction) {
 		e.writetln(e.indentLevel, "%s;", e.buildExpr(i.ExpressionStatement))
 		return
 
+	case ir.BreakInstr:
+		e.writetln(e.indentLevel, "break;")
+		return
+
 	default:
 		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
 	}
@@ -563,6 +574,10 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		"stdbool.h",
 		"stdint.h",
 		"stdlib.h",
+		"string.h",
+
+		// delete! this is for the frontend.
+		"curl/curl.h",
 	}
 	for _, h := range headers {
 		e.writeln(`#include <%s>`, h)

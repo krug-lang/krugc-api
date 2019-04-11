@@ -14,6 +14,7 @@ const (
 	IntegerValueValue     = "IntegerValue"
 	FloatingValueValue    = "FloatingValue"
 	StringValueValue      = "StringValue"
+	CharacterValueValue   = "CharValue"
 	BinaryExpressionValue = "BinaryExpression"
 	IdentifierValue       = "Identifier"
 	BuiltinValue          = "Builtin"
@@ -27,10 +28,12 @@ const (
 )
 
 type Value struct {
-	Kind             ValueKind
-	IntegerValue     *IntegerValue
-	FloatingValue    *FloatingValue
-	StringValue      *StringValue
+	Kind           ValueKind
+	IntegerValue   *IntegerValue
+	FloatingValue  *FloatingValue
+	StringValue    *StringValue
+	CharacterValue *CharacterValue
+
 	BinaryExpression *BinaryExpression
 	Identifier       *Identifier
 	Grouping         *Grouping
@@ -52,6 +55,8 @@ func (v *Value) InferredType() *Type {
 		return v.FloatingValue.InferredType()
 	case StringValueValue:
 		return v.StringValue.InferredType()
+	case CharacterValueValue:
+		return v.CharacterValue.InferredType()
 	case BinaryExpressionValue:
 		return v.BinaryExpression.InferredType()
 	case IdentifierValue:
@@ -150,6 +155,24 @@ func (i *IntegerValue) InferredType() *Type {
 
 func NewIntegerValue(val *big.Int) *IntegerValue {
 	return &IntegerValue{val}
+}
+
+// CHAR VALUE
+
+type CharacterValue struct {
+	Value string
+}
+
+func (c *CharacterValue) InferredType() *Type {
+	// FIXME
+	return &Type{
+		Kind:        IntegerKind,
+		IntegerType: NewIntegerType(8, true),
+	}
+}
+
+func NewCharacterValue(val string) *CharacterValue {
+	return &CharacterValue{val}
 }
 
 // STRING VALUE

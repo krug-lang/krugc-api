@@ -111,14 +111,16 @@ func lexChar(l *lexer) stateFn {
 }
 
 func lexQuote(l *lexer) stateFn {
-	if !l.accept(`"`) {
+	fst := l.consume()
+	if fst != '`' && fst != '"' {
 		panic("expect")
 	}
+
 	for {
 		switch r := l.consume(); {
 		default:
 			// consume
-		case r == '"':
+		case r == fst:
 			l.emit(String)
 			return lexStart
 		}
@@ -194,17 +196,21 @@ func lexSingleLine(l *lexer) stateFn {
 	l.accept("/")
 
 	for {
-		switch l.consume() {
-		default:
-			// consume
-		case '\n':
+		if l.peek() == '\n' || l.peek() == eof {
 			if !l.skipComments {
 				l.emit(SingleLineComment)
 			} else {
 				l.ignore()
 			}
+
+			// consume and ignore the newline at the
+			// end of the comment.
+			l.consume()
+			l.ignore()
+
 			return lexStart
 		}
+		l.consume()
 	}
 }
 
@@ -238,13 +244,13 @@ func lexStart(l *lexer) stateFn {
 	case c == '/':
 		l.rewind()
 		return lexComment
-	case isSymbol(c):
-		l.rewind()
-		return lexSymbol
 	case c == '\'':
 		l.rewind()
 		return lexChar
-	case c == '"':
+	case isSymbol(c):
+		l.rewind()
+		return lexSymbol
+	case c == '"' || c == '`':
 		l.rewind()
 		return lexQuote
 	case c <= ' ':
@@ -264,8 +270,10 @@ func tokenizeInput(code string, skipComments bool) ([]Token, []api.CompilerError
 		[]byte(code), 0, 0, 0, []Token{},
 		skipComments,
 	}
-	for s := lexStart; s != nil; {
-		s = s(l)
+	if len(code) > 0 {
+		for s := lexStart; s != nil; {
+			s = s(l)
+		}
 	}
 	return l.stream, []api.CompilerError{}
 }

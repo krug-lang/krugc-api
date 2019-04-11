@@ -208,6 +208,9 @@ func (b *builder) buildConst(e *front.ConstantNode) *Value {
 	case front.StringConstant:
 		res.StringValue = NewStringValue(e.StringConstantNode.Value)
 		res.Kind = StringValueValue
+	case front.CharacterConstant:
+		res.CharacterValue = NewCharacterValue(e.CharacterConstantNode.Value)
+		res.Kind = CharacterValueValue
 	case front.VariableReference:
 		res.Kind = IdentifierValue
 		res.Identifier = NewIdentifier(e.VariableReferenceNode.Name)

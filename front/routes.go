@@ -84,7 +84,7 @@ func Tokenize(c *gin.Context) {
 	}
 
 	code := lexReq.Input
-	if code[0] == '@' {
+	if len(code) != 0 && code[0] == '@' {
 		filePath := strings.Split(code, "@")[1]
 		data, err := ioutil.ReadFile(filePath)
 		if err != nil {

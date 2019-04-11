@@ -713,6 +713,15 @@ func (p *parser) parseOperand() *ExpressionNode {
 			},
 		}
 
+	case Char:
+		return &ExpressionNode{
+			Kind: ConstantExpression,
+			ConstantNode: &ConstantNode{
+				Kind:                  CharacterConstant,
+				CharacterConstantNode: &CharacterConstantNode{curr.Value},
+			},
+		}
+
 	case String:
 		return &ExpressionNode{
 			Kind: ConstantExpression,
@@ -726,7 +735,7 @@ func (p *parser) parseOperand() *ExpressionNode {
 		return nil
 
 	default:
-		p.error(api.NewUnimplementedError(curr.Value, start, p.pos))
+		p.error(api.NewUnimplementedError(string(curr.Kind), start, p.pos))
 		return nil
 	}
 }

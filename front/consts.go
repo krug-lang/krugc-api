@@ -11,6 +11,7 @@ const (
 	IntegerConstant                    = "integerConst"
 	FloatingConstant                   = "floatingConst"
 	StringConstant                     = "stringConst"
+	CharacterConstant                  = "charConst"
 )
 
 type ConstantNode struct {
@@ -19,6 +20,7 @@ type ConstantNode struct {
 	IntegerConstantNode   *IntegerConstantNode   `json:"integerConst,omitempty"`
 	FloatingConstantNode  *FloatingConstantNode  `json:"floatingConst,omitempty"`
 	StringConstantNode    *StringConstantNode    `json:"stringConst,omitempty"`
+	CharacterConstantNode *CharacterConstantNode `json:"charConst,omitempty"`
 }
 
 type VariableReferenceNode struct {
@@ -34,5 +36,9 @@ type FloatingConstantNode struct {
 }
 
 type StringConstantNode struct {
+	Value string
+}
+
+type CharacterConstantNode struct {
 	Value string
 }
