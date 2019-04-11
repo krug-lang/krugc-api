@@ -498,6 +498,36 @@ func (p *parser) parseWhileLoop() *ParseTreeNode {
 	return nil
 }
 
+func (p *parser) parseDefer() *ParseTreeNode {
+	if !p.next().Matches("defer") {
+		return nil
+	}
+	p.expect("defer")
+
+	var block *BlockNode
+	var stat *ParseTreeNode
+
+	// block or statement
+	if p.next().Matches("{") {
+		b := p.parseStatBlock()
+		if b == nil {
+			p.error(api.NewParseError("Expected a block yo"))
+			return nil
+		}
+		block = b
+	} else {
+		stat = p.parseStatement()
+	}
+
+	return &ParseTreeNode{
+		Kind: DeferStatement,
+		DeferNode: &DeferNode{
+			Block:     block,
+			Statement: stat,
+		},
+	}
+}
+
 func (p *parser) parseLoop() *ParseTreeNode {
 	if !p.next().Matches("loop") {
 		return nil
@@ -522,6 +552,8 @@ func (p *parser) parseStatement() *ParseTreeNode {
 		return p.parseLoop()
 	case curr.Matches("while"):
 		return p.parseWhileLoop()
+	case curr.Matches("defer"):
+		return p.parseDefer()
 	case curr.Matches("{"):
 		return &ParseTreeNode{
 			Kind:      BlockStatement,

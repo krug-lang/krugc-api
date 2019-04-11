@@ -381,7 +381,17 @@ func (b *builder) buildLoopStat(loop *front.LoopNode) *Instruction {
 func (b *builder) buildBlock(block *front.BlockNode) *Block {
 	res := NewBlock()
 	for _, stat := range block.Statements {
-		if st := b.buildStat(stat); st != nil {
+		st := b.buildStat(stat)
+		if st == nil {
+			continue
+		}
+
+		switch st.Kind {
+		case DeferInstr:
+			res.PushDefer(st.Defer)
+		case ReturnInstr:
+			res.SetReturn(st)
+		default:
 			res.AddInstr(st)
 		}
 	}
@@ -419,6 +429,23 @@ func (b *builder) buildAssignStat(a *front.AssignStatementNode) *Value {
 	}
 }
 
+func (b *builder) buildDefer(def *front.DeferNode) *Instruction {
+	var stat *Instruction
+	var block *Block
+
+	if def.Statement != nil {
+		stat = b.buildStat(def.Statement)
+	}
+	if def.Block != nil {
+		block = b.buildBlock(def.Block)
+	}
+
+	return &Instruction{
+		Kind:  DeferInstr,
+		Defer: NewDefer(stat, block),
+	}
+}
+
 func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 	switch stat.Kind {
 	case front.BlockStatement:
@@ -449,6 +476,9 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 	case front.IfStatement:
 		return b.buildIfStat(stat.IfNode)
 
+	case front.DeferStatement:
+		return b.buildDefer(stat.DeferNode)
+
 	case front.ExpressionStatement:
 		return &Instruction{
 			Kind:                ExpressionInstr,
@@ -456,7 +486,7 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 		}
 
 	default:
-		panic(fmt.Sprintf("unimplemented stat! %s", reflect.TypeOf(stat)))
+		panic(fmt.Sprintf("unimplemented stat! %s", stat.Kind))
 	}
 }
 

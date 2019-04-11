@@ -436,6 +436,19 @@ func (e *emitter) buildBlock(b *ir.Block) {
 		e.buildInstr(instr)
 	}
 
+	for i := len(b.DeferStack) - 1; i >= 0; i-- {
+		item := b.DeferStack[i]
+		if item.Block != nil {
+			e.buildBlock(item.Block)
+		} else {
+			e.buildInstr(item.Stat)
+		}
+	}
+
+	if b.Return != nil {
+		e.buildInstr(b.Return)
+	}
+
 	e.indentLevel--
 	e.writetln(e.indentLevel, "}")
 }

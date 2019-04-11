@@ -15,6 +15,7 @@ const (
 	LoopStatement      = "loopNode"
 	ElseIfStatement    = "elseIfNode"
 	IfStatement        = "ifNode"
+	DeferStatement     = "deferNode"
 
 	NamedTypeDeclStatement = "namedTypeDecl"
 	StructureDeclStatement = "structDecl"
@@ -90,6 +91,11 @@ type IfNode struct {
 	Else    *BlockNode
 }
 
+type DeferNode struct {
+	Block     *BlockNode
+	Statement *ParseTreeNode
+}
+
 // DECL
 
 // "struct" iden { ... }
@@ -133,6 +139,7 @@ type ParseTreeNode struct {
 	ElseIfNode    *ElseIfNode    `json:"elseIfNode,omitempty"`
 	BlockNode     *BlockNode     `json:"blockNode,omitempty"`
 	IfNode        *IfNode        `json:"ifNode,omitempty"`
+	DeferNode     *DeferNode     `json:"deferNode,omitempty"`
 
 	// DECL
 

@@ -7,18 +7,19 @@ import (
 type InstructionKind string
 
 const (
-	BlockInstr           = "BlockInstr"
-	AssignInstr          = "AssignInstr"
-	LocalInstr           = "LocalInstr"
-	AllocaInstr          = "AllocaInstr"
-	NextInstr            = "NextInstr"
-	BreakInstr           = "BreakInstr"
-	ReturnInstr          = "ReturnInstr"
-	LoopInstr            = "LoopInstr"
-	WhileLoopInstr       = "WhileLoopInstr"
-	ElseIfStatementInstr = "ElseIfStatementInstr"
-	IfStatementInstr     = "IfStatementInstr"
-	ExpressionInstr      = "ExprInstr"
+	BlockInstr           = "blockInstr"
+	AssignInstr          = "assignInstr"
+	LocalInstr           = "localInstr"
+	AllocaInstr          = "allocaInstr"
+	NextInstr            = "nextInstr"
+	BreakInstr           = "breakInstr"
+	ReturnInstr          = "returnInstr"
+	LoopInstr            = "loopInstr"
+	WhileLoopInstr       = "whileLoopInstr"
+	ElseIfStatementInstr = "elseIfStatementInstr"
+	IfStatementInstr     = "ifStatementInstr"
+	ExpressionInstr      = "exprInstr"
+	DeferInstr           = "deferInstr"
 )
 
 type Instruction struct {
@@ -31,6 +32,7 @@ type Instruction struct {
 	Break               *Break
 	Return              *Return
 	Loop                *Loop
+	Defer               *Defer
 	WhileLoop           *WhileLoop
 	ElseIfStatement     *ElseIfStatement
 	IfStatement         *IfStatement
@@ -40,8 +42,18 @@ type Instruction struct {
 // BLOCK
 
 type Block struct {
-	Instr []*Instruction
-	Stab  *SymbolTable
+	DeferStack []*Defer
+	Instr      []*Instruction
+	Stab       *SymbolTable
+	Return     *Instruction
+}
+
+func (b *Block) PushDefer(def *Defer) {
+	b.DeferStack = append(b.DeferStack, def)
+}
+
+func (b *Block) SetReturn(ret *Instruction) {
+	b.Return = ret
 }
 
 func (b *Block) AddInstr(instr *Instruction) {
@@ -50,7 +62,9 @@ func (b *Block) AddInstr(instr *Instruction) {
 
 func NewBlock() *Block {
 	return &Block{
+		[]*Defer{},
 		[]*Instruction{},
+		nil,
 		nil,
 	}
 }
@@ -69,6 +83,15 @@ func (a *Assign) InferredType() Type {
 
 func NewAssign(lh *Value, op string, rh *Value) *Assign {
 	return &Assign{lh, op, rh}
+}
+
+type Defer struct {
+	Stat  *Instruction
+	Block *Block
+}
+
+func NewDefer(stat *Instruction, block *Block) *Defer {
+	return &Defer{stat, block}
 }
 
 // LOCAL
