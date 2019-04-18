@@ -17,6 +17,9 @@ const (
 	IfStatement        = "ifNode"
 	DeferStatement     = "deferNode"
 
+	LabelStatement = "labelNode"
+	JumpStatement  = "jumpNode"
+
 	NamedTypeDeclStatement = "namedTypeDecl"
 	StructureDeclStatement = "structDecl"
 	TraitDeclStatement     = "traitDecl"
@@ -117,6 +120,14 @@ type ImplDeclaration struct {
 	Functions []*FunctionDeclaration
 }
 
+type LabelNode struct {
+	LabelName Token
+}
+
+type JumpNode struct {
+	Location Token
+}
+
 // ParseTreeNode is a big jumbo node containing all of the
 // node combinations.
 //
@@ -141,6 +152,10 @@ type ParseTreeNode struct {
 	BlockNode     *BlockNode     `json:"blockNode,omitempty"`
 	IfNode        *IfNode        `json:"ifNode,omitempty"`
 	DeferNode     *DeferNode     `json:"deferNode,omitempty"`
+
+	// JUMP STUFF
+	LabelNode *LabelNode `json:"labelNode,omityempty"`
+	JumpNode  *JumpNode  `json:"jumpNode,omityempty"`
 
 	// DECL
 

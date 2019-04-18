@@ -482,6 +482,12 @@ func (e *emitter) buildInstr(i *ir.Instruction) {
 		e.writetln(e.indentLevel, "break;")
 		return
 
+	case ir.JumpInstr:
+		e.writetln(e.indentLevel, "goto %s;", i.Jump.Location.Value)
+
+	case ir.LabelInstr:
+		e.writetln(e.indentLevel-1, "%s:", i.Label.Name.Value)
+
 	default:
 		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
 	}

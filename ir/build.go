@@ -518,6 +518,18 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 			ExpressionStatement: b.buildExpr(stat.ExpressionStatementNode),
 		}
 
+	case front.JumpStatement:
+		return &Instruction{
+			Kind: JumpInstr,
+			Jump: NewJump(stat.JumpNode.Location),
+		}
+
+	case front.LabelStatement:
+		return &Instruction{
+			Kind:  LabelInstr,
+			Label: NewLabel(stat.LabelNode.LabelName),
+		}
+
 	default:
 		panic(fmt.Sprintf("unimplemented stat! %s", stat.Kind))
 	}

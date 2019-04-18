@@ -19,6 +19,8 @@ const (
 	ElseIfStatementInstr = "elseIfStatementInstr"
 	IfStatementInstr     = "ifStatementInstr"
 	ExpressionInstr      = "exprInstr"
+	JumpInstr            = "jumpInstr"
+	LabelInstr           = "labelInstr"
 	DeferInstr           = "deferInstr"
 )
 
@@ -33,6 +35,8 @@ type Instruction struct {
 	Return              *Return
 	Loop                *Loop
 	Defer               *Defer
+	Label               *Label
+	Jump                *Jump
 	WhileLoop           *WhileLoop
 	ElseIfStatement     *ElseIfStatement
 	IfStatement         *IfStatement
@@ -83,6 +87,22 @@ func (a *Assign) InferredType() Type {
 
 func NewAssign(lh *Value, op string, rh *Value) *Assign {
 	return &Assign{lh, op, rh}
+}
+
+type Label struct {
+	Name front.Token
+}
+
+func NewLabel(name front.Token) *Label {
+	return &Label{name}
+}
+
+type Jump struct {
+	Location front.Token
+}
+
+func NewJump(loc front.Token) *Jump {
+	return &Jump{loc}
 }
 
 type Defer struct {

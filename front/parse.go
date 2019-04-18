@@ -328,6 +328,10 @@ func (p *astParser) parseSemicolonStatement() *ParseTreeNode {
 		return p.parseLet()
 	case curr.Matches(ret):
 		return p.parseReturn()
+	case curr.Matches("$"):
+		return p.parseLabel()
+	case curr.Matches("jump"):
+		return p.parseJump()
 	case curr.Matches(next):
 		return p.parseNext()
 	case curr.Matches(brk):
@@ -453,6 +457,32 @@ func (p *astParser) parseWhileLoop() *ParseTreeNode {
 	}
 
 	return nil
+}
+
+func (p *astParser) parseLabel() *ParseTreeNode {
+	if !p.next().Matches("$") {
+		return nil
+	}
+	p.expect("$")
+	labelName := p.expectKind(Identifier)
+
+	return &ParseTreeNode{
+		Kind:      LabelStatement,
+		LabelNode: &LabelNode{labelName},
+	}
+}
+
+func (p *astParser) parseJump() *ParseTreeNode {
+	if !p.next().Matches("jump") {
+		return nil
+	}
+	p.expect("jump")
+
+	label := p.expectKind(Identifier)
+	return &ParseTreeNode{
+		Kind:     JumpStatement,
+		JumpNode: &JumpNode{label},
+	}
 }
 
 func (p *astParser) parseDefer() *ParseTreeNode {
