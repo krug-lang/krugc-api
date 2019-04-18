@@ -243,6 +243,17 @@ func (e *emitter) buildIndex(i *ir.Index) string {
 	return fmt.Sprintf("%s[%s]", lhand, sub)
 }
 
+func (e *emitter) writePath(p *ir.Path) string {
+	var res string
+	for idx, p := range p.Values {
+		if idx != 0 {
+			res += "."
+		}
+		res += e.buildExpr(p)
+	}
+	return res
+}
+
 func (e *emitter) buildExpr(l *ir.Value) string {
 	switch l.Kind {
 	case ir.IntegerValueValue:
@@ -309,6 +320,9 @@ func (e *emitter) buildExpr(l *ir.Value) string {
 
 	case ir.InitValue:
 		return e.writeInitExpr(l.Init)
+
+	case ir.PathValue:
+		return e.writePath(l.Path)
 
 	default:
 		panic(fmt.Sprintf("unimplemented expr %s", l.Kind))
@@ -578,7 +592,7 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		"string.h",
 
 		// delete! this is for the frontend.
-		"curl/curl.h",
+		"SDL2/SDL.h",
 	}
 	for _, h := range headers {
 		e.writeln(`#include <%s>`, h)

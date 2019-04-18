@@ -191,6 +191,7 @@ func (b *builder) buildPathExpression(p *front.PathExpressionNode) *Value {
 
 		values = append(values, val)
 	}
+
 	return &Value{
 		Kind: PathValue,
 		Path: NewPath(values),
@@ -199,6 +200,7 @@ func (b *builder) buildPathExpression(p *front.PathExpressionNode) *Value {
 
 func (b *builder) buildConst(e *front.ConstantNode) *Value {
 	res := &Value{}
+
 	switch e.Kind {
 	case front.IntegerConstant:
 		res.IntegerValue = NewIntegerValue(e.IntegerConstantNode.Value)
@@ -286,7 +288,30 @@ func (b *builder) buildExpr(expr *front.ExpressionNode) *Value {
 		return b.buildCallExpression(expr.CallExpressionNode)
 
 	case front.PathExpression:
-		return b.buildPathExpression(expr.PathExpressionNode)
+		{
+			p := b.buildPathExpression(expr.PathExpressionNode)
+
+			pat := p.Path
+			last := pat.Values[len(pat.Values)-1]
+
+			// rewrite so that we return a BinaryExpr(path, op, right)
+			// versus
+			// Path where the last value is a Binary Expr.
+			if last.Kind == BinaryExpressionValue {
+				bin := last.BinaryExpression
+
+				// set the last value to be equal to the binary expr lhand
+				pat.Values[len(pat.Values)-1] = bin.LHand
+				bin.LHand = p
+
+				return &Value{
+					Kind:             BinaryExpressionValue,
+					BinaryExpression: bin,
+				}
+			}
+
+			return p
+		}
 
 	case front.IndexExpression:
 		return b.buildIndexExpression(expr.IndexExpressionNode)
