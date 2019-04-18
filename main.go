@@ -19,6 +19,13 @@ func main() {
 
 	router := gin.Default()
 
+	const VERSION = "0.0.1"
+	router.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, map[string]string{
+			"version": VERSION,
+		})
+	})
+
 	// compiler frontend, handles lexing/parsing
 	f := router.Group("/front")
 	{

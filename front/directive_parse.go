@@ -56,20 +56,23 @@ func (p *directiveParser) parseArgumentList() []value {
 }
 
 func parseInclude(p *directiveParser) *Directive {
+	start := p.pos
+
 	args := p.parseArgumentList()
 	if args == nil {
-		// TODO(ERROR)
+		p.error(api.NewDirectiveParseError("expected argument list", start, p.pos))
 		return nil
 	}
 
-	if len(args) == 1 {
+	if len(args) != 1 {
 		// TODO error: not enough arguments supplied.
+		p.error(api.NewDirectiveParseError("not enough arguments supplied", start, p.pos))
 		return nil
 	}
 
 	// TODO improve the type checking for directive args.
 	if args[0].kind != stringValue {
-		// TODO error: no string value supplied
+		p.error(api.NewDirectiveParseError("include should have on parameter of type 'string'", start, p.pos))
 		return nil
 	}
 

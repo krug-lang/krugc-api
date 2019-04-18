@@ -2,6 +2,7 @@ package ir
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 
 	jsoniter "github.com/json-iterator/go"
@@ -36,7 +37,7 @@ func Build(c *gin.Context) {
 		Data:   string(jsonIrModule),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 type builder struct {

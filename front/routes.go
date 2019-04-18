@@ -2,6 +2,7 @@ package front
 
 import (
 	"io/ioutil"
+	"net/http"
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
@@ -39,7 +40,7 @@ func Comments(c *gin.Context) {
 		Data:   string(jsonResp),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 func DirectiveParser(c *gin.Context) {
@@ -64,7 +65,7 @@ func DirectiveParser(c *gin.Context) {
 		Data:   string(jsonNodes),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 func Parse(c *gin.Context) {
@@ -89,7 +90,7 @@ func Parse(c *gin.Context) {
 		Data:   string(jsonNodes),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 // Tokenize is the route that handles tokenisation of files.
@@ -129,5 +130,5 @@ func Tokenize(c *gin.Context) {
 		Data:   string(jsonResp),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }

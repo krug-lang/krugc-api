@@ -1,6 +1,8 @@
 package middle
 
 import (
+	"net/http"
+
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +44,7 @@ func BuildType(c *gin.Context) {
 		Errors: errs,
 	}
 
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 // this returns the ir module, modified
@@ -68,5 +70,5 @@ func BuildScope(c *gin.Context) {
 		Errors: errs,
 	}
 
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }

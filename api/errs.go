@@ -11,6 +11,15 @@ type CompilerError struct {
 	CodeContext []int
 }
 
+func NewDirectiveParseError(what string, points ...int) CompilerError {
+	return CompilerError{
+		Title:       fmt.Sprintf(what),
+		Desc:        "",
+		Fatal:       true,
+		CodeContext: points,
+	}
+}
+
 func NewUnimplementedError(what string, points ...int) CompilerError {
 	return CompilerError{
 		Title:       fmt.Sprintf("%s unimplemented", what),

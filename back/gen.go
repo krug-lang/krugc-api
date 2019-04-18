@@ -2,6 +2,7 @@ package back
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hugobrains/caasper/front"
@@ -32,7 +33,7 @@ func Gen(c *gin.Context) {
 		Data:   monoFile,
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 type emitter struct {

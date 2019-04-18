@@ -1,6 +1,8 @@
 package middle
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/hugobrains/caasper/api"
 	"github.com/hugobrains/caasper/ir"
@@ -25,7 +27,7 @@ func TypeResolve(c *gin.Context) {
 		Data:   string(jsonIrModule),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
 
 func SymbolResolve(c *gin.Context) {
@@ -46,5 +48,5 @@ func SymbolResolve(c *gin.Context) {
 		Data:   string(jsonMod),
 		Errors: errors,
 	}
-	c.JSON(200, &resp)
+	c.JSON(http.StatusOK, &resp)
 }
