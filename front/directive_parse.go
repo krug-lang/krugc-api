@@ -202,13 +202,13 @@ func (p *directiveParser) parseDirective() []*Directive {
 	return dirs
 }
 
-func parseDirectives(toks []Token) ([]Directive, []api.CompilerError) {
+func parseDirectives(toks []Token) ([]*Directive, []api.CompilerError) {
 	p := &directiveParser{parser{toks, 0, []api.CompilerError{}}}
 
-	nodes := []Directive{}
+	nodes := []*Directive{}
 	for p.hasNext() {
 		if curr := p.next(); curr.Matches("#") {
-			p.parseDirective()
+			nodes = append(nodes, p.parseDirective()...)
 		} else {
 			p.consume()
 		}

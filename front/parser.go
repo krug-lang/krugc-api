@@ -1,8 +1,6 @@
 package front
 
 import (
-	"fmt"
-
 	"github.com/hugobrains/caasper/api"
 )
 
@@ -56,7 +54,6 @@ func (p *parser) rewind() {
 
 func (p *parser) consume() (tok Token) {
 	tok = p.toks[p.pos]
-	fmt.Println("consumed", tok)
 	p.pos++
 	return tok
 }

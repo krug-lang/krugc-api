@@ -27,17 +27,17 @@ const (
 
 // #{include(string)}
 type IncludeDirective struct {
-	Path string
+	Path string `json:"path"`
 }
 
 // #{link("/some/path")}
 type LinkDirective struct {
-	Flags []string
+	Flags []string `json:"flags"`
 }
 
 // #{align(integer)}
 type AlignDirective struct {
-	Alignment uint64
+	Alignment uint64 `json:"align"`
 }
 
 // #{clang}
@@ -51,10 +51,10 @@ type PackedDirective struct{}
 
 type Directive struct {
 	Kind              directiveKind
-	IncludeDirective  *IncludeDirective
-	LinkDirective     *LinkDirective
-	AlignDirective    *AlignDirective
-	NoMangleDirective *NoMangleDirective
-	PackedDirective   *PackedDirective
-	ClangDirective    *ClangDirective
+	IncludeDirective  *IncludeDirective  `json:"includeDirective,omitempty"`
+	LinkDirective     *LinkDirective     `json:"linkDirective,omitempty"`
+	AlignDirective    *AlignDirective    `json:"alignDirective,omitempty"`
+	NoMangleDirective *NoMangleDirective `json:"noMangleDirective,omitempty"`
+	PackedDirective   *PackedDirective   `json:"packedDirective,omitempty"`
+	ClangDirective    *ClangDirective    `json:"clangDirective,omitempty"`
 }
