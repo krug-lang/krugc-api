@@ -26,7 +26,11 @@ func main() {
 		f.POST("/lex", front.Tokenize)
 
 		// parsing.
-		f.POST("/parse", front.Parse)
+		parse := f.Group("/parse")
+		{
+			parse.POST("/ast", front.Parse)
+			parse.POST("/directive", front.DirectiveParser)
+		}
 
 		f.POST("/comments", front.Comments)
 	}

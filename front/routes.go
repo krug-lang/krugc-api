@@ -42,6 +42,31 @@ func Comments(c *gin.Context) {
 	c.JSON(200, &resp)
 }
 
+func DirectiveParser(c *gin.Context) {
+	var directiveReq api.DirectiveParseRequest
+	if err := c.BindJSON(&directiveReq); err != nil {
+		panic(err)
+	}
+
+	var stream []Token
+	if err := jsoniter.Unmarshal([]byte(directiveReq.Input), &stream); err != nil {
+		panic(err)
+	}
+
+	nodes, errors := parseDirectives(stream)
+
+	jsonNodes, err := jsoniter.MarshalIndent(nodes, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	resp := api.KrugResponse{
+		Data:   string(jsonNodes),
+		Errors: errors,
+	}
+	c.JSON(200, &resp)
+}
+
 func Parse(c *gin.Context) {
 	var parseReq api.ParseRequest
 	if err := c.BindJSON(&parseReq); err != nil {

@@ -22,66 +22,13 @@ const (
 	impl         = "impl"
 )
 
+type astParser struct {
+	parser
+}
+
 var BadToken Token
 
-type parser struct {
-	toks   []Token
-	pos    int
-	errors []api.CompilerError
-}
-
-func (p *parser) error(e api.CompilerError) {
-	p.errors = append(p.errors, e)
-}
-
-func (p *parser) peek(offs int) (tok Token) {
-	tok = p.toks[p.pos+offs]
-	return tok
-}
-
-func (p *parser) next() (tok Token) {
-	tok = p.toks[p.pos]
-	return tok
-}
-
-func (p *parser) expect(val string) (tok Token) {
-	start := p.pos
-	if p.hasNext() {
-		if tok = p.consume(); tok.Matches(val) {
-			return tok
-		}
-	}
-
-	p.error(api.NewUnexpectedToken(val, p.next().Value, start, p.pos))
-	return BadToken
-}
-
-func (p *parser) expectKind(kind TokenType) (tok Token) {
-	start := p.pos
-
-	if tok = p.consume(); tok.Kind == kind {
-		return tok
-	}
-
-	p.error(api.NewUnexpectedToken(string(kind), p.next().Value, start, p.pos))
-	return BadToken
-}
-
-func (p *parser) rewind() {
-	p.pos--
-}
-
-func (p *parser) consume() (tok Token) {
-	tok = p.toks[p.pos]
-	p.pos++
-	return tok
-}
-
-func (p *parser) hasNext() bool {
-	return p.pos < len(p.toks)
-}
-
-func (p *parser) parsePointerType() *TypeNode {
+func (p *astParser) parsePointerType() *TypeNode {
 	start := p.pos
 	p.expect("*")
 	base := p.parseType()
@@ -98,7 +45,7 @@ func (p *parser) parsePointerType() *TypeNode {
 	}
 }
 
-func (p *parser) parseArrayType() *TypeNode {
+func (p *astParser) parseArrayType() *TypeNode {
 	start := p.pos
 
 	p.expect("[")
@@ -124,7 +71,7 @@ func (p *parser) parseArrayType() *TypeNode {
 	}
 }
 
-func (p *parser) parseUnresolvedType() *TypeNode {
+func (p *astParser) parseUnresolvedType() *TypeNode {
 	name := p.expectKind(Identifier)
 	return &TypeNode{
 		Kind: UnresolvedType,
@@ -134,7 +81,7 @@ func (p *parser) parseUnresolvedType() *TypeNode {
 	}
 }
 
-func (p *parser) parseTupleType() *TypeNode {
+func (p *astParser) parseTupleType() *TypeNode {
 	p.expect("(")
 	var types []*TypeNode
 	for p.hasNext() {
@@ -162,7 +109,7 @@ func (p *parser) parseTupleType() *TypeNode {
 	}
 }
 
-func (p *parser) parseType() *TypeNode {
+func (p *astParser) parseType() *TypeNode {
 	start := p.pos
 	switch curr := p.next(); {
 	case curr.Matches("*"):
@@ -179,7 +126,7 @@ func (p *parser) parseType() *TypeNode {
 	}
 }
 
-func (p *parser) parseStructureDeclaration() *StructureDeclaration {
+func (p *astParser) parseStructureDeclaration() *StructureDeclaration {
 	start := p.pos
 
 	p.expect("struct")
@@ -217,7 +164,7 @@ func (p *parser) parseStructureDeclaration() *StructureDeclaration {
 	}
 }
 
-func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
+func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclaration {
 	start := p.pos
 
 	p.expect(fn)
@@ -264,7 +211,7 @@ func (p *parser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclarati
 }
 
 // mut x [ type ] [ = val ]
-func (p *parser) parseMut() *ParseTreeNode {
+func (p *astParser) parseMut() *ParseTreeNode {
 	start := p.pos
 
 	p.expect(mut)
@@ -303,7 +250,7 @@ func (p *parser) parseMut() *ParseTreeNode {
 }
 
 // let is a constant variable.
-func (p *parser) parseLet() *ParseTreeNode {
+func (p *astParser) parseLet() *ParseTreeNode {
 	start := p.pos
 
 	p.expect(let)
@@ -336,7 +283,7 @@ func (p *parser) parseLet() *ParseTreeNode {
 	}
 }
 
-func (p *parser) parseReturn() *ParseTreeNode {
+func (p *astParser) parseReturn() *ParseTreeNode {
 	if !p.next().Matches("return") {
 		return nil
 	}
@@ -359,21 +306,21 @@ func (p *parser) parseReturn() *ParseTreeNode {
 	}
 }
 
-func (p *parser) parseNext() *ParseTreeNode {
+func (p *astParser) parseNext() *ParseTreeNode {
 	p.expect("next")
 	return &ParseTreeNode{
 		Kind: NextStatement,
 	}
 }
 
-func (p *parser) parseBreak() *ParseTreeNode {
+func (p *astParser) parseBreak() *ParseTreeNode {
 	p.expect("break")
 	return &ParseTreeNode{
 		Kind: BreakStatement,
 	}
 }
 
-func (p *parser) parseSemicolonStatement() *ParseTreeNode {
+func (p *astParser) parseSemicolonStatement() *ParseTreeNode {
 	switch curr := p.next(); {
 	case curr.Matches(mut):
 		return p.parseMut()
@@ -390,7 +337,7 @@ func (p *parser) parseSemicolonStatement() *ParseTreeNode {
 	return p.parseExpressionStatement()
 }
 
-func (p *parser) parseStatBlock() *BlockNode {
+func (p *astParser) parseStatBlock() *BlockNode {
 	if !p.next().Matches("{") {
 		return nil
 	}
@@ -413,7 +360,7 @@ func (p *parser) parseStatBlock() *BlockNode {
 	}
 }
 
-func (p *parser) parseIfElseChain() *ParseTreeNode {
+func (p *astParser) parseIfElseChain() *ParseTreeNode {
 	if !p.next().Matches("if") {
 		return nil
 	}
@@ -473,7 +420,7 @@ func (p *parser) parseIfElseChain() *ParseTreeNode {
 	}
 }
 
-func (p *parser) parseWhileLoop() *ParseTreeNode {
+func (p *astParser) parseWhileLoop() *ParseTreeNode {
 	if !p.next().Matches("while") {
 		return nil
 	}
@@ -508,7 +455,7 @@ func (p *parser) parseWhileLoop() *ParseTreeNode {
 	return nil
 }
 
-func (p *parser) parseDefer() *ParseTreeNode {
+func (p *astParser) parseDefer() *ParseTreeNode {
 	if !p.next().Matches("defer") {
 		return nil
 	}
@@ -538,7 +485,7 @@ func (p *parser) parseDefer() *ParseTreeNode {
 	}
 }
 
-func (p *parser) parseLoop() *ParseTreeNode {
+func (p *astParser) parseLoop() *ParseTreeNode {
 	if !p.next().Matches("loop") {
 		return nil
 	}
@@ -554,7 +501,7 @@ func (p *parser) parseLoop() *ParseTreeNode {
 	return nil
 }
 
-func (p *parser) parseStatement() *ParseTreeNode {
+func (p *astParser) parseStatement() *ParseTreeNode {
 	switch curr := p.next(); {
 	case curr.Matches("if"):
 		return p.parseIfElseChain()
@@ -578,14 +525,14 @@ func (p *parser) parseStatement() *ParseTreeNode {
 	return stat
 }
 
-func (p *parser) parseFunctionDeclaration() *FunctionDeclaration {
+func (p *astParser) parseFunctionDeclaration() *FunctionDeclaration {
 	proto := p.parseFunctionPrototypeDeclaration()
 
 	body := p.parseStatBlock()
 	return &FunctionDeclaration{proto, body}
 }
 
-func (p *parser) parseImplDeclaration() *ImplDeclaration {
+func (p *astParser) parseImplDeclaration() *ImplDeclaration {
 	p.expect("impl")
 	name := p.expectKind(Identifier)
 
@@ -609,7 +556,7 @@ func (p *parser) parseImplDeclaration() *ImplDeclaration {
 	}
 }
 
-func (p *parser) parseTraitDeclaration() *TraitDeclaration {
+func (p *astParser) parseTraitDeclaration() *TraitDeclaration {
 	p.expect("trait")
 
 	name := p.expectKind(Identifier)
@@ -639,7 +586,7 @@ func (p *parser) parseTraitDeclaration() *TraitDeclaration {
 	return &TraitDeclaration{name, members}
 }
 
-func (p *parser) parseUnaryExpr() *ExpressionNode {
+func (p *astParser) parseUnaryExpr() *ExpressionNode {
 	if !p.hasNext() || !p.next().Matches(unaryOperators...) {
 		return nil
 	}
@@ -658,7 +605,7 @@ func (p *parser) parseUnaryExpr() *ExpressionNode {
 	}
 }
 
-func (p *parser) parseOperand() *ExpressionNode {
+func (p *astParser) parseOperand() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -740,7 +687,7 @@ func (p *parser) parseOperand() *ExpressionNode {
 	}
 }
 
-func (p *parser) parseBuiltin() *ExpressionNode {
+func (p *astParser) parseBuiltin() *ExpressionNode {
 	start := p.pos
 	builtin := p.expectKind(Identifier)
 	p.expect("!")
@@ -783,7 +730,7 @@ func (p *parser) parseBuiltin() *ExpressionNode {
 	}
 }
 
-func (p *parser) parseCall(left *ExpressionNode) *ExpressionNode {
+func (p *astParser) parseCall(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
 
 	var params []*ExpressionNode
@@ -810,7 +757,7 @@ func (p *parser) parseCall(left *ExpressionNode) *ExpressionNode {
 	}
 }
 
-func (p *parser) parseIndex(left *ExpressionNode) *ExpressionNode {
+func (p *astParser) parseIndex(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
 	p.expect("[")
 	val := p.parseExpression()
@@ -826,7 +773,7 @@ func (p *parser) parseIndex(left *ExpressionNode) *ExpressionNode {
 	}
 }
 
-func (p *parser) parseLambda() *ExpressionNode {
+func (p *astParser) parseLambda() *ExpressionNode {
 	proto := p.parseFunctionPrototypeDeclaration()
 	body := p.parseStatBlock()
 	return &ExpressionNode{
@@ -837,7 +784,7 @@ func (p *parser) parseLambda() *ExpressionNode {
 	}
 }
 
-func (p *parser) parseInitializer() *ExpressionNode {
+func (p *astParser) parseInitializer() *ExpressionNode {
 	curr := p.consume()
 
 	var initKind InitializerKind
@@ -905,7 +852,7 @@ func (p *parser) parseInitializer() *ExpressionNode {
 	}
 }
 
-func (p *parser) parsePrimaryExpr() *ExpressionNode {
+func (p *astParser) parsePrimaryExpr() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -946,7 +893,7 @@ func (p *parser) parsePrimaryExpr() *ExpressionNode {
 	return left
 }
 
-func (p *parser) parseLeft() *ExpressionNode {
+func (p *astParser) parseLeft() *ExpressionNode {
 	if expr := p.parsePrimaryExpr(); expr != nil {
 		return expr
 	}
@@ -980,7 +927,7 @@ func getOpPrec(op string) int {
 	return -1
 }
 
-func (p *parser) parsePrec(lastPrec int, left *ExpressionNode) *ExpressionNode {
+func (p *astParser) parsePrec(lastPrec int, left *ExpressionNode) *ExpressionNode {
 	for p.hasNext() {
 		prec := getOpPrec(p.next().Value)
 		if prec < lastPrec {
@@ -1029,7 +976,7 @@ func (p *parser) parsePrec(lastPrec int, left *ExpressionNode) *ExpressionNode {
 	return left
 }
 
-func (p *parser) parseAssign(left *ExpressionNode) *ExpressionNode {
+func (p *astParser) parseAssign(left *ExpressionNode) *ExpressionNode {
 	if !p.hasNext() {
 		return nil
 	}
@@ -1050,7 +997,7 @@ func (p *parser) parseAssign(left *ExpressionNode) *ExpressionNode {
 	}
 }
 
-func (p *parser) parseDotList(left *ExpressionNode) *ExpressionNode {
+func (p *astParser) parseDotList(left *ExpressionNode) *ExpressionNode {
 	start := p.pos
 	list := []*ExpressionNode{}
 
@@ -1081,7 +1028,7 @@ var builtins = []string{
 	"alloc", "sizeof", "len", "free",
 }
 
-func (p *parser) parseExpression() *ExpressionNode {
+func (p *astParser) parseExpression() *ExpressionNode {
 	left := p.parseLeft()
 	if left == nil {
 		return nil
@@ -1101,7 +1048,7 @@ func (p *parser) parseExpression() *ExpressionNode {
 	return left
 }
 
-func (p *parser) parseExpressionStatement() *ParseTreeNode {
+func (p *astParser) parseExpressionStatement() *ParseTreeNode {
 	expr := p.parseExpression()
 	if expr != nil {
 		return &ParseTreeNode{
@@ -1113,18 +1060,31 @@ func (p *parser) parseExpressionStatement() *ParseTreeNode {
 	return nil
 }
 
+func (p *astParser) skipDirective() {
+	p.expect("#")
+	p.expect("{")
+	for p.hasNext() && !p.next().Matches("}") {
+		p.consume()
+	}
+	p.expect("}")
+}
+
 // parseNode returns whether the node was parsed
 // with error or not, as well as the node. for example
 // parsing a comment returns a nil node, but the
 // parse was OK to do. however an error returns a nil node
 // but it was not OK
-func (p *parser) parseNode() *ParseTreeNode {
+func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 	start := p.pos
 	startingTok := p.next()
 
 	res := &ParseTreeNode{}
 
 	switch curr := p.next(); {
+	case curr.Matches("#"):
+		p.skipDirective()
+		return nil, true
+
 	case curr.Matches(struc):
 		res.StructureDeclaration = p.parseStructureDeclaration()
 		res.Kind = StructureDeclStatement
@@ -1148,21 +1108,23 @@ func (p *parser) parseNode() *ParseTreeNode {
 
 	default:
 		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
-		return nil
+		return nil, false
 	}
 
-	return res
+	return res, true
 }
 
 func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
-	p := &parser{stream, 0, []api.CompilerError{}}
+	p := &astParser{parser{stream, 0, []api.CompilerError{}}}
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
-		node := p.parseNode()
-		if node == nil {
+		node, ok := p.parseNode()
+		if !ok {
 			break
 		}
-		nodes = append(nodes, node)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
 	}
 	return nodes, p.errors
 }
