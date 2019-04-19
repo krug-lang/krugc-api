@@ -208,6 +208,10 @@ func (e *emitter) buildBuiltin(b *ir.Builtin) string {
 		return e.buildAllocBuiltin(b)
 	case "free":
 		return fmt.Sprintf("free(%s)", bType)
+	case "move":
+		return fmt.Sprintf("(/*move*/%s)", bType)
+	case "ref":
+		return fmt.Sprintf("(/*ref*/%s)", bType)
 	default:
 		panic(fmt.Sprintf("unimplemented builtin %s", b.Name))
 	}

@@ -215,6 +215,13 @@ func (p *astParser) parseMut() *ParseTreeNode {
 	start := p.pos
 
 	p.expect(mut)
+
+	owned := false
+	if p.next().Matches("~") {
+		p.consume()
+		owned = true
+	}
+
 	name := p.expectKind(Identifier)
 
 	var typ *TypeNode
@@ -243,6 +250,7 @@ func (p *astParser) parseMut() *ParseTreeNode {
 		Kind: MutableStatement,
 		MutableStatementNode: &MutableStatementNode{
 			Name:  name,
+			Owned: owned,
 			Type:  typ,
 			Value: val,
 		},
@@ -254,6 +262,13 @@ func (p *astParser) parseLet() *ParseTreeNode {
 	start := p.pos
 
 	p.expect(let)
+
+	owned := false
+	if p.next().Matches("~") {
+		p.consume()
+		owned = true
+	}
+
 	name := p.expectKind(Identifier)
 
 	var typ *TypeNode
@@ -277,6 +292,7 @@ func (p *astParser) parseLet() *ParseTreeNode {
 		Kind: LetStatement,
 		LetStatementNode: &LetStatementNode{
 			Name:  name,
+			Owned: owned,
 			Type:  typ,
 			Value: value,
 		},
@@ -1056,6 +1072,7 @@ var unaryOperators = []string{
 }
 var builtins = []string{
 	"alloc", "sizeof", "len", "free",
+	"move", "ref",
 }
 
 func (p *astParser) parseExpression() *ExpressionNode {

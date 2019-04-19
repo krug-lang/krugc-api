@@ -64,11 +64,13 @@ type FunctionDeclaration struct {
 
 type LetStatementNode struct {
 	Name  Token
+	Owned bool
 	Type  *TypeNode
 	Value *ExpressionNode
 }
 type MutableStatementNode struct {
 	Name  Token
+	Owned bool
 	Type  *TypeNode
 	Value *ExpressionNode
 }
