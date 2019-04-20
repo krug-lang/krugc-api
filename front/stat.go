@@ -29,105 +29,106 @@ const (
 )
 
 type NamedType struct {
-	Mutable bool
-	Name    Token
-	Type    *TypeNode
+	Mutable bool      `json:"mutable"`
+	Name    Token     `json:"name"`
+	Owned   bool      `json:"owned"`
+	Type    *TypeNode `json:"type"`
 }
 
 type BlockNode struct {
 	// hm
-	Statements []*ParseTreeNode
+	Statements []*ParseTreeNode `json:"statements"`
 }
 
 //
 type ElseIfNode struct {
-	Cond  *ExpressionNode
-	Block *BlockNode
+	Cond  *ExpressionNode `json:"cond"`
+	Block *BlockNode      `json:"block"`
 }
 
 // "func" iden "(" args ")"
 type FunctionPrototypeDeclaration struct {
-	Name      Token
-	Arguments []*NamedType
+	Name      Token        `json:"name"`
+	Arguments []*NamedType `json:"arguments"`
 
 	// TODO should this be set to anything by
 	// default, e.g. we can inject a "void"
 	// into here?
-	ReturnType *TypeNode
+	ReturnType *TypeNode `json:"return_type"`
 }
 
 // [ FunctionPrototypeDeclaration ] "{" { Stat ";" } "}"
 type FunctionDeclaration struct {
 	*FunctionPrototypeDeclaration
-	Body *BlockNode
+	Body *BlockNode `json:"body"`
 }
 
 type LetStatementNode struct {
-	Name  Token
-	Owned bool
-	Type  *TypeNode
-	Value *ExpressionNode
+	Name  Token           `json:"name"`
+	Owned bool            `json:"owned"`
+	Type  *TypeNode       `json:"type"`
+	Value *ExpressionNode `json:"value"`
 }
 type MutableStatementNode struct {
-	Name  Token
-	Owned bool
-	Type  *TypeNode
-	Value *ExpressionNode
+	Name  Token           `json:"name"`
+	Owned bool            `json:"owned"`
+	Type  *TypeNode       `json:"type"`
+	Value *ExpressionNode `json:"value"`
 }
 type ReturnStatementNode struct {
-	Value *ExpressionNode
+	Value *ExpressionNode `json:"value"`
 }
 
 // CONSTR
 
 type WhileLoopNode struct {
-	Cond  *ExpressionNode
-	Post  *ExpressionNode
-	Block *BlockNode
+	Cond  *ExpressionNode `json:"cond"`
+	Post  *ExpressionNode `json:"post,omitempty"`
+	Block *BlockNode      `json:"block"`
 }
 
 type LoopNode struct {
-	Block *BlockNode
+	Block *BlockNode `json:"block"`
 }
 
 type IfNode struct {
-	Cond    *ExpressionNode
-	Block   *BlockNode
-	ElseIfs []*ElseIfNode
-	Else    *BlockNode
+	Cond    *ExpressionNode `json:"cond"`
+	Block   *BlockNode      `json:"block"`
+	ElseIfs []*ElseIfNode   `json:"else_ifs"`
+	Else    *BlockNode      `json:"else"`
 }
 
 type DeferNode struct {
-	Block     *BlockNode
-	Statement *ParseTreeNode
+	Block     *BlockNode     `json:"block"`
+	Statement *ParseTreeNode `json:"statement"`
 }
 
 // DECL
 
 // "struct" iden { ... }
 type StructureDeclaration struct {
-	Name   Token
-	Fields []*NamedType
+	Name   Token        `json:"name"`
+	Fields []*NamedType `json:"fields"`
 }
 
 // "trait" iden { ... }
 type TraitDeclaration struct {
-	Name    Token
-	Members []*FunctionPrototypeDeclaration
+	Name    Token                           `json:"name"`
+	Members []*FunctionPrototypeDeclaration `json:"members"`
 }
 
 // todo
 type ImplDeclaration struct {
-	Name      Token
-	Functions []*FunctionDeclaration
+	Name      Token                  `json:"name"`
+	Functions []*FunctionDeclaration `json:"functions"`
 }
 
 type LabelNode struct {
-	LabelName Token
+	LabelName Token `json:"label_name"`
 }
 
 type JumpNode struct {
-	Location Token
+	Location Token `json:"location"`
 }
 
 // ParseTreeNode is a big jumbo node containing all of the
@@ -139,7 +140,7 @@ type JumpNode struct {
 // union approach, though Go doesn't support unions so this will be
 // a relatively large struct.
 type ParseTreeNode struct {
-	Kind StatementType
+	Kind StatementType `json:"kind"`
 
 	LetStatementNode        *LetStatementNode     `json:"letStatement,omitempty"`
 	MutableStatementNode    *MutableStatementNode `json:"mutStatement,omitempty"`
@@ -156,8 +157,8 @@ type ParseTreeNode struct {
 	DeferNode     *DeferNode     `json:"deferNode,omitempty"`
 
 	// JUMP STUFF
-	LabelNode *LabelNode `json:"labelNode,omityempty"`
-	JumpNode  *JumpNode  `json:"jumpNode,omityempty"`
+	LabelNode *LabelNode `json:"labelNode,omitempty"`
+	JumpNode  *JumpNode  `json:"jumpNode,omitempty"`
 
 	// DECL
 

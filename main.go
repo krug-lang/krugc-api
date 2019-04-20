@@ -62,6 +62,8 @@ func main() {
 			b.POST("/type", middle.BuildType)
 		}
 
+		m.POST("/borrowcheck", middle.BorrowCheck)
+
 		r := m.Group("/resolve")
 		{
 			// semantic module{module, scope_map, type_map} -> [type_resolve]

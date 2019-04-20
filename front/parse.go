@@ -151,7 +151,9 @@ func (p *astParser) parseStructureDeclaration() *StructureDeclaration {
 		// immutable structure fields will not be an option
 		// in the future as it's too confusing and doesn't
 		// really make sense.
-		fields = append(fields, &NamedType{true, name, typ})
+		// IN ADDITION the fields are not owned by anything.
+		// FIXME how should this be?
+		fields = append(fields, &NamedType{true, name, false, typ})
 
 		// trailing commas are enforced.
 		p.expect(",")
@@ -189,13 +191,19 @@ func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclar
 			p.consume()
 		}
 
+		owned := false
+		if p.next().Matches("~") {
+			owned = true
+			p.consume()
+		}
+
 		name := p.expectKind(Identifier)
 		typ := p.parseType()
 		if typ == nil {
 			p.error(api.NewParseError("type after pointer", start, p.pos))
 		}
 
-		args = append(args, &NamedType{mutable, name, typ})
+		args = append(args, &NamedType{mutable, name, owned, typ})
 	}
 	p.expect(")")
 

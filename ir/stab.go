@@ -28,10 +28,11 @@ func NewSymbol(name front.Token) *Symbol {
 }
 
 type SymbolTable struct {
-	Id      int
-	Outer   *SymbolTable
-	Types   map[string]*Type
-	Symbols map[string]SymbolValue
+	ID        int                    `json:"id"`
+	Outer     *SymbolTable           `json:"outer,omitempty"`
+	Types     map[string]*Type       `json:"types"`
+	Symbols   map[string]SymbolValue `json:"symbols"`
+	SymbolSet []string               `json:"symbol_set"`
 }
 
 func (s *SymbolTable) String() string {
@@ -79,6 +80,7 @@ func (s *SymbolTable) Register(name string, sym SymbolValue) bool {
 	if _, ok := s.Symbols[name]; ok {
 		return false
 	}
+	s.SymbolSet = append(s.SymbolSet, name)
 	s.Symbols[name] = sym
 	return true
 }
@@ -99,7 +101,7 @@ func (s *SymbolTable) Lookup(name string) (SymbolValue, bool) {
 
 func NewSymbolTable(outer *SymbolTable) *SymbolTable {
 	return &SymbolTable{
-		Id:      rand.Intn(30000),
+		ID:      rand.Intn(30000),
 		Outer:   outer,
 		Symbols: map[string]SymbolValue{},
 		Types:   map[string]*Type{},

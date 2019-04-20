@@ -2,7 +2,6 @@ package middle
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/hugobrains/caasper/api"
 	"github.com/hugobrains/caasper/ir"
@@ -98,6 +97,9 @@ func (b *builder) visitInstr(i *ir.Instruction) {
 		instr := i.Block
 		b.visitBlock(instr)
 
+	case ir.ExpressionInstr:
+		fmt.Println(i.ExpressionStatement)
+
 		/*
 			case *ir.Path:
 				return
@@ -110,7 +112,7 @@ func (b *builder) visitInstr(i *ir.Instruction) {
 		*/
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", reflect.TypeOf(i)))
+		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
 	}
 }
 
@@ -158,19 +160,11 @@ func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 		0,
 	}
 
+	// the returned scope map that we are creating
+	// we traverse all of the relevant nodes
+	// and append to this scope map.
 	scopeMap := ir.NewScopeMap()
 
-	// create stabs for the structs
-	for _, structure := range mod.Structures {
-		stab := b.visitStructure(structure)
-
-		ok := scopeMap.RegisterStructure(structure.Name.Value, stab)
-		if !ok {
-			b.error(api.NewSymbolError(structure.Name.Value, structure.Name.Span...))
-		}
-	}
-
-	// create stabs for the functions
 	for _, fn := range mod.Functions {
 		stab := b.visitFunc(fn)
 
@@ -179,19 +173,6 @@ func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 			b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
 		}
 	}
-
-	/*
-		// create stabs for the impls
-		for name, impl := range mod.Impls {
-			impl.Stab = b.pushStab(name)
-
-			for _, fn := range impl.Methods {
-				fn.Stab = b.visitFunc(fn)
-			}
-
-			b.popStab()
-		}
-	*/
 
 	return scopeMap, b.errs
 }

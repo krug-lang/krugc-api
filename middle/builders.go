@@ -57,8 +57,12 @@ func BuildScope(c *gin.Context) {
 		panic(err)
 	}
 
-	var irMod *ir.Module
-	scopeMap, errs := buildScope(irMod)
+	var irMod ir.Module
+	if err := jsoniter.Unmarshal([]byte(scopeMapReq.IRModule), &irMod); err != nil {
+		panic(err)
+	}
+
+	scopeMap, errs := buildScope(&irMod)
 
 	jsonScopeMap, err := jsoniter.MarshalIndent(scopeMap, "", "  ")
 	if err != nil {

@@ -1,6 +1,6 @@
 # caasper
 This repository is the compiler for Krug: Caasper. Most of the actual compilation 
-work is done here, the frontends job is simply to talk to Caasper.
+work is done here, the frontends job is simply to communicate with Caasper.
 
 You will need both the krug [frontend](//github.com/hugobrains/krug), and
 an instance of Caasper running locally - or on the cloud somewhere - for you to 

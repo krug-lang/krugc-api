@@ -7,16 +7,13 @@ import (
 // MODULE
 
 type Module struct {
-	Name string
-
-	Structures     map[string]*Structure
-	StructureOrder []front.Token
-
-	Functions     map[string]*Function
-	FunctionOrder []front.Token
-
-	Impls      map[string]*Impl
-	ImplsOrder []front.Token
+	Name           string                `json:"name"`
+	Structures     map[string]*Structure `json:"structures"`
+	StructureOrder []front.Token         `json:"structure_order"`
+	Functions      map[string]*Function  `json:"functions"`
+	FunctionOrder  []front.Token         `json:"function_order"`
+	Impls          map[string]*Impl      `json:"impls"`
+	ImplsOrder     []front.Token         `json:"impls_order"`
 }
 
 func NewModule(name string) *Module {

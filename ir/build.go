@@ -537,10 +537,11 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 
 func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 	mutabilityTable := make([]bool, len(node.Arguments))
+	// TODO ownership table here, or in the typedict/params?
 
 	params := newTypeDict()
 	for i, p := range node.Arguments {
-		params.Set(p.Name, b.buildType(p.Type))
+		params.Set(p.Name, p.Owned, b.buildType(p.Type))
 		mutabilityTable[i] = p.Mutable
 	}
 
@@ -594,7 +595,7 @@ func (b *builder) buildTree(m *Module, nodes []*front.ParseTreeNode) {
 			if typ == nil {
 				panic("couldn't build type when setting structure field")
 			}
-			structure.Fields.Set(tn.Name, typ)
+			structure.Fields.Set(tn.Name, tn.Owned, typ)
 		}
 	}
 

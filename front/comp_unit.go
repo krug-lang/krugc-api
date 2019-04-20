@@ -7,8 +7,8 @@ import (
 )
 
 type KrugCompilationUnit struct {
-	Name string
-	Code string
+	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 // GetLine will return the line of the given position, as well

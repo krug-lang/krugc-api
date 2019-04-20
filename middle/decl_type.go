@@ -8,10 +8,10 @@ import (
 )
 
 type decl struct {
-	mod      *ir.Module
-	scopeMap *ir.ScopeMap
-	errors   []api.CompilerError
-	curr     *ir.SymbolTable
+	mod      *ir.Module          `json:"mod"`
+	scopeMap *ir.ScopeMap        `json:"scope_map"`
+	errors   []api.CompilerError `json:"errors"`
+	curr     *ir.SymbolTable     `json:"curr"`
 }
 
 func (d *decl) error(e api.CompilerError) {

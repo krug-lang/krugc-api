@@ -24,21 +24,21 @@ type ConstantNode struct {
 }
 
 type VariableReferenceNode struct {
-	Name Token
+	Name Token `json:"name"`
 }
 
 type IntegerConstantNode struct {
-	Value *big.Int
+	Value *big.Int `json:"value"`
 }
 
 type FloatingConstantNode struct {
-	Value float64
+	Value float64 `json:"value"`
 }
 
 type StringConstantNode struct {
-	Value string
+	Value string `json:"value"`
 }
 
 type CharacterConstantNode struct {
-	Value string
+	Value string `json:"value"`
 }

@@ -21,7 +21,10 @@ type ParseRequest struct {
 // sema
 
 type BuildTypeMapRequest struct{}
-type BuildScopeMapRequest struct{}
+
+type BuildScopeMapRequest struct {
+	IRModule string `json:"ir_module"`
+}
 
 // ir build
 

@@ -19,9 +19,9 @@ const (
 )
 
 type Token struct {
-	Value string
-	Kind  TokenType
-	Span  []int
+	Value string    `json:"value"`
+	Kind  TokenType `json:"kind"`
+	Span  []int     `json:"span"`
 }
 
 // Matches returns if the tokens LEXEME

@@ -21,17 +21,17 @@ const (
 )
 
 type Type struct {
-	Kind TypeOf
+	Kind TypeOf `json:"kind"`
 
-	VoidType     *VoidType
-	FloatingType *FloatingType
-	IntegerType  *IntegerType
-	ArrayType    *ArrayType
-	Function     *Function
-	Tuple        *TupleType
-	Structure    *Structure
-	Pointer      *PointerType
-	Reference    *ReferenceType
+	VoidType     *VoidType      `json:"voidType"`
+	FloatingType *FloatingType  `json:"floatingType"`
+	IntegerType  *IntegerType   `json:"integerType"`
+	ArrayType    *ArrayType     `json:"arrayType"`
+	Function     *Function      `json:"function"`
+	Tuple        *TupleType     `json:"tuple"`
+	Structure    *Structure     `json:"structure"`
+	Pointer      *PointerType   `json:"pointer"`
+	Reference    *ReferenceType `json:"reference"`
 }
 
 func (t *Type) String() string {
@@ -108,8 +108,8 @@ func (v *VoidType) String() string {
 // INTEGER TYPE
 
 type IntegerType struct {
-	Width  int
-	Signed bool
+	Width  int  `json:"width"`
+	Signed bool `json:"signed"`
 }
 
 func (i *IntegerType) String() string {
@@ -127,7 +127,7 @@ func NewIntegerType(width int, signed bool) *IntegerType {
 // FLOATING TYPE
 
 type FloatingType struct {
-	Width int
+	Width int `json:"width"`
 }
 
 func (f *FloatingType) String() string {
@@ -143,7 +143,7 @@ func NewFloatingType(width int) *FloatingType {
 // i.e. a reference to some
 // type, e.g. Person or Shape, etc.
 type ReferenceType struct {
-	Name string
+	Name string `json:"name"`
 }
 
 func (r *ReferenceType) String() string {
@@ -157,7 +157,7 @@ func NewReferenceType(name string) *ReferenceType {
 // TUPLE TYPE
 
 type TupleType struct {
-	Types []*Type
+	Types []*Type `json:"types"`
 }
 
 func (t *TupleType) String() string {
@@ -171,8 +171,8 @@ func NewTupleType(types []*Type) *TupleType {
 // ARRAY TYPE
 
 type ArrayType struct {
-	Base *Type
-	Size *Value
+	Base *Type  `json:"base"`
+	Size *Value `json:"size"`
 }
 
 func (a *ArrayType) String() string {
@@ -186,7 +186,7 @@ func NewArrayType(base *Type, size *Value) *ArrayType {
 // POINTER TYPE
 
 type PointerType struct {
-	Base *Type
+	Base *Type `json:"base"`
 }
 
 func (p *PointerType) String() string {
@@ -200,8 +200,9 @@ func NewPointerType(base *Type) *PointerType {
 // ORDERED TYPE MAP.
 
 type TypeDict struct {
-	Data  map[string]*Type
-	Order []front.Token
+	Data  map[string]*Type `json:"data"`
+	Order []front.Token    `json:"order"`
+	Owned []bool           `json:"owned"`
 }
 
 func (t *TypeDict) Get(k string) *Type {
@@ -209,8 +210,9 @@ func (t *TypeDict) Get(k string) *Type {
 	return typ
 }
 
-func (t *TypeDict) Set(a front.Token, typ *Type) {
+func (t *TypeDict) Set(a front.Token, owned bool, typ *Type) {
 	t.Order = append(t.Order, a)
+	t.Owned = append(t.Owned, owned)
 	t.Data[a.Value] = typ
 }
 
@@ -224,16 +226,16 @@ func (t TypeDict) String() string {
 }
 
 func newTypeDict() *TypeDict {
-	return &TypeDict{map[string]*Type{}, []front.Token{}}
+	return &TypeDict{map[string]*Type{}, []front.Token{}, []bool{}}
 }
 
 // STRUCTURE
 
 type Structure struct {
-	Name    front.Token
-	Stab    *SymbolTable
-	Fields  *TypeDict
-	Methods map[string]*Function
+	Name    front.Token          `json:"name"`
+	Stab    *SymbolTable         `json:"stab,omitempty"`
+	Fields  *TypeDict            `json:"fields"`
+	Methods map[string]*Function `json:"methods"`
 }
 
 func (s *Structure) RegisterMethod(f *Function) {
@@ -251,12 +253,12 @@ func NewStructure(name front.Token, fields *TypeDict) *Structure {
 // FUNCTION
 
 type Function struct {
-	Name            front.Token
-	MutabilityTable []bool
-	Stab            *SymbolTable
-	Param           *TypeDict
-	ReturnType      *Type
-	Body            *Block
+	Name            front.Token  `json:"name"`
+	MutabilityTable []bool       `json:"mut_table"`
+	Stab            *SymbolTable `json:"stab,omitempty"`
+	Param           *TypeDict    `json:"param"`
+	ReturnType      *Type        `json:"return_type,omitempty"`
+	Body            *Block       `json:"body"`
 }
 
 func (f *Function) String() string {
@@ -268,16 +270,16 @@ func NewFunction(name front.Token, mutabilityTable []bool, params *TypeDict, ret
 }
 
 type UnclaimedMethod struct {
-	Parent string
-	Method *Function
+	Parent string    `json:"parent"`
+	Method *Function `json:"method"`
 }
 
 // IMPL - method group
 
 type Impl struct {
-	Name    front.Token
-	Stab    *SymbolTable
-	Methods map[string]*Function
+	Name    front.Token          `json:"name"`
+	Stab    *SymbolTable         `json:"stab,omitempty"`
+	Methods map[string]*Function `json:"methods"`
 }
 
 func (i *Impl) RegisterMethod(fn *Function) bool {
