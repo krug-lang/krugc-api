@@ -29,8 +29,18 @@ func Gen(c *gin.Context) {
 	// bytes for one big old c file.
 	monoFile, errors := codegen(&irMod, codeGenReq.TabSize, codeGenReq.Minify)
 
+	type generatedCode struct {
+		Code string `json:"code"`
+	}
+
+	genCode := generatedCode{monoFile}
+	genCodeResp, err := jsoniter.Marshal(&genCode)
+	if err != nil {
+		panic(err)
+	}
+
 	resp := api.KrugResponse{
-		Data:   monoFile,
+		Data:   string(genCodeResp),
 		Errors: errors,
 	}
 	c.JSON(http.StatusOK, &resp)
