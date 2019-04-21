@@ -12,6 +12,7 @@ type decl struct {
 	scopeMap *ir.ScopeMap        `json:"scope_map"`
 	errors   []api.CompilerError `json:"errors"`
 	curr     *ir.SymbolTable     `json:"curr"`
+	outer    *ir.SymbolTable
 }
 
 func (d *decl) error(e api.CompilerError) {
@@ -19,11 +20,13 @@ func (d *decl) error(e api.CompilerError) {
 }
 
 func (d *decl) push(stab *ir.SymbolTable) {
+	old := d.curr
+	d.outer = old
 	d.curr = stab
 }
 
 func (d *decl) pop() {
-	d.curr = d.curr.Outer
+	d.curr = d.outer
 }
 
 func (d *decl) regType(name string, t *ir.Type) {
@@ -98,6 +101,7 @@ func declType(scopeMap *ir.ScopeMap, mod *ir.Module) (*ir.TypeMap, []api.Compile
 		mod,
 		scopeMap,
 		[]api.CompilerError{},
+		nil,
 		nil,
 	}
 

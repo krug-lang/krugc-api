@@ -12,6 +12,7 @@ type typeResolvePass struct {
 	mod    *ir.Module
 	errors []api.CompilerError
 	curr   *ir.SymbolTable
+	outer  *ir.SymbolTable
 }
 
 func (t *typeResolvePass) scope() *ir.SymbolTable {
@@ -20,10 +21,11 @@ func (t *typeResolvePass) scope() *ir.SymbolTable {
 
 func (t *typeResolvePass) push(s *ir.SymbolTable) {
 	t.curr = s
+	t.outer = t.curr
 }
 
 func (t *typeResolvePass) pop() {
-	t.curr = t.curr.Outer
+	t.curr = t.outer
 }
 
 func (t *typeResolvePass) error(err api.CompilerError) {
@@ -235,7 +237,7 @@ func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
 }
 
 func typeResolve(mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
-	trp := &typeResolvePass{mod, []api.CompilerError{}, nil}
+	trp := &typeResolvePass{mod, []api.CompilerError{}, nil, nil}
 
 	// todo get this from the scope map
 	// trp.push(mod.Root)

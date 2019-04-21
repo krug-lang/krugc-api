@@ -12,6 +12,7 @@ type symResolvePass struct {
 	mod    *ir.Module
 	errors []api.CompilerError
 	curr   *ir.SymbolTable
+	outer  *ir.SymbolTable
 }
 
 func (s *symResolvePass) error(err api.CompilerError) {
@@ -24,7 +25,7 @@ func (s *symResolvePass) push(stab *ir.SymbolTable) {
 
 func (s *symResolvePass) pop() {
 	if s.curr != nil {
-		s.curr = s.curr.Outer
+		s.curr = s.outer
 	}
 }
 
@@ -191,7 +192,7 @@ func (s *symResolvePass) resolveFunc(fn *ir.Function) {
 }
 
 func symResolve(mod *ir.Module) (*ir.Module, []api.CompilerError) {
-	srp := &symResolvePass{mod, []api.CompilerError{}, nil}
+	srp := &symResolvePass{mod, []api.CompilerError{}, nil, nil}
 
 	for _, impl := range mod.Impls {
 		for _, method := range impl.Methods {

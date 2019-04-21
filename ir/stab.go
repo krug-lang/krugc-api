@@ -30,10 +30,11 @@ func NewSymbol(name front.Token, owned bool) *Symbol {
 
 type SymbolTable struct {
 	ID        int                    `json:"id"`
-	Outer     *SymbolTable           `json:"outer,omitempty"`
+	OuterID   int                    `json:"outer_id,omitempty"`
+	Inner     *SymbolTable           `json:"inner,omitempty"`
 	Types     map[string]*Type       `json:"types"`
 	Symbols   map[string]SymbolValue `json:"symbols"`
-	SymbolSet []string               `json:"symbol_set"`
+	SymbolSet []string               `json:"symbol_set,omitempty"`
 }
 
 func (s *SymbolTable) String() string {
@@ -93,18 +94,19 @@ func (s *SymbolTable) Lookup(name string) (SymbolValue, bool) {
 		}
 	}
 
-	if s.Outer == nil {
-		return nil, false
-	}
-
-	return s.Outer.Lookup(name)
+	panic("shit")
 }
 
 func NewSymbolTable(outer *SymbolTable) *SymbolTable {
+	outerID := -1
+	if outer != nil {
+		outerID = outer.ID
+	}
 	return &SymbolTable{
-		ID:      rand.Intn(30000),
-		Outer:   outer,
-		Symbols: map[string]SymbolValue{},
-		Types:   map[string]*Type{},
+		ID:        rand.Intn(30000),
+		OuterID:   outerID,
+		Symbols:   map[string]SymbolValue{},
+		Types:     map[string]*Type{},
+		SymbolSet: []string{},
 	}
 }

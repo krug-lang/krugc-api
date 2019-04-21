@@ -10,6 +10,7 @@ import (
 type builder struct {
 	mod        *ir.Module
 	curr       *ir.SymbolTable
+	outer      *ir.SymbolTable
 	errs       []api.CompilerError
 	blockCount int
 }
@@ -21,15 +22,20 @@ func (b *builder) error(err api.CompilerError) {
 func (b *builder) pushStab(name string) *ir.SymbolTable {
 	old := b.curr
 	b.curr = ir.NewSymbolTable(old)
+	if old != nil {
+		old.Inner = b.curr
+	}
+	b.outer = old
 	return b.curr
 }
 
 func (b *builder) popStab() *ir.SymbolTable {
 	current := b.curr
-	if current.Outer == nil {
-		panic("no stab to pop to")
+	if b.outer == nil {
+		b.curr = nil
+		return current
 	}
-	b.curr = current.Outer
+	b.curr = b.outer
 	return current
 }
 
@@ -140,6 +146,8 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 		b.visitInstr(instr)
 	}
 
+	b.popStab()
+
 	return res
 }
 
@@ -159,6 +167,7 @@ func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 	b := &builder{
 		mod,
+		nil,
 		nil,
 		[]api.CompilerError{},
 		0,
