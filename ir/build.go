@@ -340,7 +340,7 @@ func (b *builder) buildLetStat(l *front.LetStatementNode) *Instruction {
 		// typ = val.InferredType()
 	}
 
-	local := NewLocal(l.Name, typ)
+	local := NewLocal(l.Name, typ, l.Owned)
 	local.SetValue(val)
 	local.SetMutable(true)
 	return &Instruction{
@@ -367,7 +367,7 @@ func (b *builder) buildMutStat(m *front.MutableStatementNode) *Instruction {
 		// typ = val.InferredType()
 	}
 
-	local := NewLocal(m.Name, typ)
+	local := NewLocal(m.Name, typ, m.Owned)
 	local.SetValue(val)
 	local.SetMutable(true)
 	return &Instruction{

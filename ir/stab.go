@@ -12,7 +12,8 @@ type SymbolValue interface {
 }
 
 type Symbol struct {
-	Name front.Token
+	Name  front.Token `json:"name"`
+	Owned bool        `json:"owned"`
 }
 
 func (s *Symbol) GetType() *Type {
@@ -23,8 +24,8 @@ func (s *Symbol) SymbolTypeName() string {
 	return "symbol"
 }
 
-func NewSymbol(name front.Token) *Symbol {
-	return &Symbol{name}
+func NewSymbol(name front.Token, owned bool) *Symbol {
+	return &Symbol{name, owned}
 }
 
 type SymbolTable struct {

@@ -69,16 +69,20 @@ func (b *builder) visitLoop(loop *ir.Loop) {
 
 func (b *builder) visitInstr(i *ir.Instruction) {
 	switch i.Kind {
+
+	// TODO(FElix):
+	// store owned in the alloc, and local instr
+
 	case ir.AllocaInstr:
 		instr := i.Alloca
-		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name))
+		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name, instr.Owned))
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
 
 	case ir.LocalInstr:
 		instr := i.Local
-		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name))
+		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name, instr.Owned))
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
@@ -123,8 +127,8 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 	b.blockCount = 0
 
 	// introduce params into the function scope.
-	for _, name := range fn.Param.Order {
-		ok := b.curr.Register(name.Value, ir.NewSymbol(name))
+	for idx, name := range fn.Param.Order {
+		ok := b.curr.Register(name.Value, ir.NewSymbol(name, fn.Param.Owned[idx]))
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
 		}
@@ -143,7 +147,7 @@ func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	stab := b.pushStab(s.Name.Value)
 
 	for _, name := range s.Fields.Order {
-		ok := stab.Register(name.Value, ir.NewSymbol(name))
+		ok := stab.Register(name.Value, ir.NewSymbol(name, false))
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
 		}
