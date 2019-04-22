@@ -169,6 +169,33 @@ func (e *emitter) writeType(typ *ir.Type) string {
 
 }
 
+func (e *emitter) emitLocal(loc *ir.Local) string {
+	// FIXME this is lazy i just copied
+	// and pasted this and rewrote old args as variables lol
+	mutable := loc.Mutable
+	t := loc.Type
+	name := loc.Name.Value
+
+	genType := e.writeType(t)
+
+	// we have to move the array to the end of the
+	// typed name because C
+	var result string
+	if t.Kind == ir.ArrayKind {
+		val := e.buildExpr(t.ArrayType.Size)
+		result = fmt.Sprintf("%s %s[%s]", genType, name, val)
+	} else {
+		result = fmt.Sprintf("%s %s", genType, name)
+	}
+
+	// append the mutability modifier
+	var modifier string
+	if !mutable {
+		modifier = "const "
+	}
+	return fmt.Sprintf("%s%s", modifier, result)
+}
+
 func (e *emitter) emitTypedName(mutable bool, t *ir.Type, name string) string {
 	genType := e.writeType(t)
 
@@ -543,9 +570,9 @@ func (e *emitter) emitStructure(st *ir.Structure) {
 	e.indentLevel++
 
 	for _, name := range st.Fields.Order {
-		t := st.Fields.Get(name.Value)
-		typedName := e.emitTypedName(true, t, name.Value)
-		e.writetln(e.indentLevel, "%s;", typedName)
+		loc := st.Fields.Get(name.Value)
+		genLoc := e.emitLocal(loc)
+		e.writetln(e.indentLevel, "%s;", genLoc)
 	}
 	e.indentLevel--
 
@@ -566,13 +593,13 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 
 		idx := 0
 		for _, name := range fn.Param.Order {
-			t := fn.Param.Get(name.Value)
+			loc := fn.Param.Get(name.Value)
 
 			if idx != 0 {
 				argList += ", "
 			}
 			// TODO mutability of parameters.
-			argList += e.emitTypedName(fn.MutabilityTable[idx], t, name.Value)
+			argList += e.emitLocal(loc)
 			idx++
 		}
 		return argList

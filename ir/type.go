@@ -199,34 +199,36 @@ func NewPointerType(base *Type) *PointerType {
 
 // ORDERED TYPE MAP.
 
+// TODO rename this to LocalDict
+// maybe even rename a Local to a Binding
+// since we bind a name to a type.
 type TypeDict struct {
-	Data  map[string]*Type `json:"data"`
-	Order []front.Token    `json:"order"`
-	Owned []bool           `json:"owned"`
+	Data  map[string]*Local `json:"data"`
+	Order []front.Token     `json:"order"`
 }
 
-func (t *TypeDict) Get(k string) *Type {
-	typ, _ := t.Data[k]
-	return typ
+func (t *TypeDict) Get(name string) *Local {
+	loc, _ := t.Data[name]
+	return loc
 }
 
-func (t *TypeDict) Set(a front.Token, owned bool, typ *Type) {
-	t.Order = append(t.Order, a)
-	t.Owned = append(t.Owned, owned)
-	t.Data[a.Value] = typ
+func (t *TypeDict) Add(l *Local) {
+	t.Order = append(t.Order, l.Name)
+	t.Data[l.Name.Value] = l
 }
 
 func (t TypeDict) String() string {
 	var fields string
 	for _, name := range t.Order {
 		field, _ := t.Data[name.Value]
-		fields += fmt.Sprintf("%s:%s,", name, field.String())
+		// FIXME?
+		fields += fmt.Sprintf("%s:%s,", name, field)
 	}
 	return fields
 }
 
 func newTypeDict() *TypeDict {
-	return &TypeDict{map[string]*Type{}, []front.Token{}, []bool{}}
+	return &TypeDict{map[string]*Local{}, []front.Token{}}
 }
 
 // STRUCTURE
@@ -253,20 +255,19 @@ func NewStructure(name front.Token, fields *TypeDict) *Structure {
 // FUNCTION
 
 type Function struct {
-	Name            front.Token  `json:"name"`
-	MutabilityTable []bool       `json:"mut_table"`
-	Stab            *SymbolTable `json:"stab,omitempty"`
-	Param           *TypeDict    `json:"param"`
-	ReturnType      *Type        `json:"return_type,omitempty"`
-	Body            *Block       `json:"body"`
+	Name       front.Token  `json:"name"`
+	Stab       *SymbolTable `json:"stab,omitempty"`
+	Param      *TypeDict    `json:"param"`
+	ReturnType *Type        `json:"return_type,omitempty"`
+	Body       *Block       `json:"body"`
 }
 
 func (f *Function) String() string {
 	return f.ReturnType.String()
 }
 
-func NewFunction(name front.Token, mutabilityTable []bool, params *TypeDict, ret *Type) *Function {
-	return &Function{name, mutabilityTable, nil, params, ret, NewBlock()}
+func NewFunction(name front.Token, params *TypeDict, ret *Type) *Function {
+	return &Function{name, nil, params, ret, NewBlock()}
 }
 
 type UnclaimedMethod struct {

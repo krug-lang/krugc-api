@@ -167,10 +167,10 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 	b.blockCount = 0
 
 	// introduce params into the function scope.
-	for idx, name := range fn.Param.Order {
+	for _, name := range fn.Param.Order {
 		ok := b.curr.Register(name.Value, &ir.SymbolValue{
 			Kind:   ir.SymbolKind,
-			Symbol: ir.NewSymbol(name, fn.Param.Owned[idx]),
+			Symbol: ir.NewSymbol(name, fn.Param.Data[name.Value].Owned),
 		})
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))

@@ -421,10 +421,14 @@ func (b *builder) buildBlock(block *front.BlockNode) *Block {
 		}
 
 		switch st.Kind {
+
 		case DeferInstr:
+			// do we add this to the instructions list?
 			res.PushDefer(st.Defer)
+
 		case ReturnInstr:
 			res.SetReturn(st)
+			fallthrough
 		default:
 			res.AddInstr(st)
 		}
@@ -537,13 +541,11 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 }
 
 func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
-	mutabilityTable := make([]bool, len(node.Arguments))
-	// TODO ownership table here, or in the typedict/params?
-
 	params := newTypeDict()
-	for i, p := range node.Arguments {
-		params.Set(p.Name, p.Owned, b.buildType(p.Type))
-		mutabilityTable[i] = p.Mutable
+	for _, p := range node.Arguments {
+		param := NewLocal(p.Name, b.buildType(p.Type), p.Owned)
+		param.SetMutable(p.Mutable)
+		params.Add(param)
 	}
 
 	ret := Void
@@ -551,7 +553,7 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 		ret = b.buildType(node.ReturnType)
 	}
 
-	fn := NewFunction(node.Name, mutabilityTable, params, ret)
+	fn := NewFunction(node.Name, params, ret)
 	fn.Body = b.buildBlock(node.Body)
 	return fn
 }
@@ -591,12 +593,14 @@ func (b *builder) buildTree(m *Module, nodes []*front.ParseTreeNode) {
 			panic(fmt.Sprintf("couldn't find structure %s", sn.Name))
 		}
 
+		// FIXME
+		// fields should maybe be a (TypeDict) LocalDict? or something
 		for _, tn := range sn.Fields {
 			typ := b.buildType(tn.Type)
 			if typ == nil {
 				panic("couldn't build type when setting structure field")
 			}
-			structure.Fields.Set(tn.Name, tn.Owned, typ)
+			structure.Fields.Add(NewLocal(tn.Name, typ, tn.Owned))
 		}
 	}
 

@@ -86,11 +86,11 @@ func (t *typeResolvePass) resolveVia(typ *ir.Type, val *ir.Value) *ir.Type {
 		iden := val.Identifier
 
 		left := typ.Structure
-		typ, ok := left.Fields.Data[iden.Name.Value]
+		loc, ok := left.Fields.Data[iden.Name.Value]
 		if !ok {
 			t.error(api.NewUnresolvedSymbol(iden.Name.Value, iden.Name.Span...))
 		}
-		return typ
+		return loc.Type
 
 	default:
 		t.error(api.NewUnimplementedError(reflect.TypeOf(typ).String()))
@@ -206,15 +206,18 @@ func (t *typeResolvePass) resolveStructure(st *ir.Structure) *ir.Type {
 	}
 
 	for _, name := range st.Fields.Order {
-		typ, _ := st.Fields.Data[name.Value]
+		loc, _ := st.Fields.Data[name.Value]
 
 		// set the field type to the newly
 		// resolved type
-		resolved := t.resolveType(typ)
-		st.Fields.Data[name.Value] = resolved
+		resolved := t.resolveType(loc.Type)
+		loc.Type = resolved
+
+		// HM FIXME
+		st.Fields.Data[name.Value] = loc
 	}
 
-	// HM
+	// HM FIXME
 	return &ir.Type{
 		Kind:      ir.StructKind,
 		Structure: st,
@@ -224,7 +227,8 @@ func (t *typeResolvePass) resolveStructure(st *ir.Structure) *ir.Type {
 func (t *typeResolvePass) resolveFunc(fn *ir.Function) {
 	for _, name := range fn.Param.Order {
 		param, _ := fn.Param.Data[name.Value]
-		t.resolveType(param)
+		// HM FIXME
+		t.resolveType(param.Type)
 	}
 
 	t.resolveType(fn.ReturnType)

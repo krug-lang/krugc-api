@@ -64,3 +64,12 @@ func NewSymbolError(name string, points ...int) CompilerError {
 		CodeContext: points,
 	}
 }
+
+func NewMovedValueError(name string, points ...int) CompilerError {
+	return CompilerError{
+		Title:       fmt.Sprintf("Use of moved value '%s'", name),
+		Desc:        "",
+		Fatal:       false,
+		CodeContext: points,
+	}
+}
