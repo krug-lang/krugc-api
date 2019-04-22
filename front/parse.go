@@ -191,9 +191,9 @@ func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclar
 			p.consume()
 		}
 
-		owned := false
+		owned := true
 		if p.next().Matches("~") {
-			owned = true
+			owned = false
 			p.consume()
 		}
 
@@ -224,10 +224,10 @@ func (p *astParser) parseMut() *ParseTreeNode {
 
 	p.expect(mut)
 
-	owned := false
+	owned := true
 	if p.next().Matches("~") {
 		p.consume()
-		owned = true
+		owned = false
 	}
 
 	name := p.expectKind(Identifier)
