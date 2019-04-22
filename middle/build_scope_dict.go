@@ -7,19 +7,20 @@ import (
 	"github.com/hugobrains/caasper/ir"
 )
 
-type builder struct {
+type scopeDictBuilder struct {
 	mod        *ir.Module
 	curr       *ir.SymbolTable
 	outer      []*ir.SymbolTable
 	errs       []api.CompilerError
 	blockCount int
+	scopeDict  *ir.ScopeDict
 }
 
-func (b *builder) error(err api.CompilerError) {
+func (b *scopeDictBuilder) error(err api.CompilerError) {
 	b.errs = append(b.errs, err)
 }
 
-func (b *builder) pushStab(name string) *ir.SymbolTable {
+func (b *scopeDictBuilder) pushStab(name string) *ir.SymbolTable {
 	// store the previous stab
 	prev := b.curr
 
@@ -40,7 +41,7 @@ func (b *builder) pushStab(name string) *ir.SymbolTable {
 	return pushed
 }
 
-func (b *builder) popStab() *ir.SymbolTable {
+func (b *scopeDictBuilder) popStab() *ir.SymbolTable {
 	// store the stab to pop
 	popped := b.curr
 
@@ -59,14 +60,15 @@ func (b *builder) popStab() *ir.SymbolTable {
 	return popped
 }
 
-func (b *builder) pushBlock(id int) *ir.SymbolTable {
+func (b *scopeDictBuilder) pushBlock(id int) *ir.SymbolTable {
 	return b.pushStab(fmt.Sprintf("%d", id))
 }
 
 // TODO generate some kind of key that maps an ir.Block
 // to the symbol table.
-func (b *builder) visitBlock(i *ir.Block) *ir.SymbolTable {
+func (b *scopeDictBuilder) visitBlock(i *ir.Block) *ir.SymbolTable {
 	i.Stab = b.pushBlock(b.blockCount)
+	b.assign(i, i.Stab)
 	b.blockCount++
 
 	for _, instr := range i.Instr {
@@ -77,7 +79,7 @@ func (b *builder) visitBlock(i *ir.Block) *ir.SymbolTable {
 	return i.Stab
 }
 
-func (b *builder) visitIfStat(iff *ir.IfStatement) {
+func (b *scopeDictBuilder) visitIfStat(iff *ir.IfStatement) {
 	b.visitBlock(iff.True)
 	for _, e := range iff.ElseIf {
 		b.visitBlock(e.Body)
@@ -87,15 +89,15 @@ func (b *builder) visitIfStat(iff *ir.IfStatement) {
 	}
 }
 
-func (b *builder) visitWhileLoop(while *ir.WhileLoop) {
+func (b *scopeDictBuilder) visitWhileLoop(while *ir.WhileLoop) {
 	b.visitBlock(while.Body)
 }
 
-func (b *builder) visitLoop(loop *ir.Loop) {
+func (b *scopeDictBuilder) visitLoop(loop *ir.Loop) {
 	b.visitBlock(loop.Body)
 }
 
-func (b *builder) visitInstr(i *ir.Instruction) {
+func (b *scopeDictBuilder) visitInstr(i *ir.Instruction) {
 	switch i.Kind {
 
 	// TODO(FElix):
@@ -154,14 +156,19 @@ func (b *builder) visitInstr(i *ir.Instruction) {
 	}
 }
 
+func (b *scopeDictBuilder) assign(block *ir.Block, stab *ir.SymbolTable) {
+	b.scopeDict.Data[block.ID] = stab
+}
+
 // hack we shouldnt have to do this in the first place?
-func (b *builder) clearScope() {
+func (b *scopeDictBuilder) clearScope() {
 	b.curr = nil
 }
 
-func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
+func (b *scopeDictBuilder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 	b.clearScope()
 	res := b.pushStab(fn.Name.Value)
+	b.assign(fn.Body, res)
 
 	// reset the block count
 	b.blockCount = 0
@@ -188,7 +195,7 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 	return res
 }
 
-func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
+func (b *scopeDictBuilder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	stab := b.pushStab(s.Name.Value)
 
 	for _, name := range s.Fields.Order {
@@ -204,28 +211,19 @@ func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	return stab
 }
 
-func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
-	b := &builder{
+func buildScopeDict(mod *ir.Module) (*ir.ScopeDict, []api.CompilerError) {
+	b := &scopeDictBuilder{
 		mod,
 		nil,
 		[]*ir.SymbolTable{},
 		[]api.CompilerError{},
 		0,
+		ir.NewScopeDict(),
 	}
-
-	// the returned scope map that we are creating
-	// we traverse all of the relevant nodes
-	// and append to this scope map.
-	scopeMap := ir.NewScopeMap()
 
 	for _, fn := range mod.Functions {
-		stab := b.visitFunc(fn)
-
-		ok := scopeMap.RegisterFunction(fn.Name.Value, stab)
-		if !ok {
-			b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
-		}
+		b.visitFunc(fn)
 	}
 
-	return scopeMap, b.errs
+	return b.scopeDict, b.errs
 }

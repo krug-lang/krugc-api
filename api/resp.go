@@ -22,6 +22,10 @@ type ParseRequest struct {
 
 type BuildTypeMapRequest struct{}
 
+type BuildScopeDictRequest struct {
+	IRModule string `json:"ir_module"`
+}
+
 type BuildScopeMapRequest struct {
 	IRModule string `json:"ir_module"`
 }

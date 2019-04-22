@@ -9,8 +9,8 @@ import (
 type SymbolValueKind string
 
 const (
-	SymbolKind SymbolValueKind = "stab"
-	SymbolTableKind
+	SymbolKind      SymbolValueKind = "sym"
+	SymbolTableKind                 = "stab"
 )
 
 type SymbolValue struct {

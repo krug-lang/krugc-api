@@ -413,6 +413,7 @@ func (b *builder) buildLoopStat(loop *front.LoopNode) *Instruction {
 
 func (b *builder) buildBlock(block *front.BlockNode) *Block {
 	res := NewBlock()
+
 	for _, stat := range block.Statements {
 		st := b.buildStat(stat)
 		if st == nil {

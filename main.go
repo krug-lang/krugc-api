@@ -55,10 +55,13 @@ func main() {
 	{
 		b := m.Group("/build")
 		{
-			// module -> [build_scope] -> scope map.
+			// module -> [build/scope] -> scope map.
 			b.POST("/scope", middle.BuildScope)
 
-			// module -> [build_type] -> type map.
+			// module -> [build/scope_map] -> scope dict
+			b.POST("/scope_dict", middle.BuildScopeDict)
+
+			// module -> [build/type] -> type map.
 			b.POST("/type", middle.BuildType)
 		}
 

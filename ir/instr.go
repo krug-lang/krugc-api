@@ -46,6 +46,7 @@ type Instruction struct {
 // BLOCK
 
 type Block struct {
+	ID         uint64
 	DeferStack []*Defer
 	Instr      []*Instruction
 	Stab       *SymbolTable
@@ -64,13 +65,19 @@ func (b *Block) AddInstr(instr *Instruction) {
 	b.Instr = append(b.Instr, instr)
 }
 
+// TODO fixme?
+var blockIota uint64
+
 func NewBlock() *Block {
-	return &Block{
+	res := &Block{
+		blockIota,
 		[]*Defer{},
 		[]*Instruction{},
 		nil,
 		nil,
 	}
+	blockIota++
+	return res
 }
 
 // ASSIGN

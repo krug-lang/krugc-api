@@ -10,6 +10,14 @@ func NewSemanticModule(sm *ScopeMap, tm *TypeMap, m *Module) SemanticModule {
 	return SemanticModule{sm, tm, m}
 }
 
+type ScopeDict struct {
+	Data map[uint64]*SymbolTable
+}
+
+func NewScopeDict() *ScopeDict {
+	return &ScopeDict{map[uint64]*SymbolTable{}}
+}
+
 // ScopeMap is a data structure that
 // contains the scope information for a single
 // module.

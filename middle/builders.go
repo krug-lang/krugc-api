@@ -76,3 +76,29 @@ func BuildScope(c *gin.Context) {
 
 	c.JSON(http.StatusOK, &resp)
 }
+
+func BuildScopeDict(c *gin.Context) {
+	var scopeDictReq api.BuildScopeDictRequest
+	if err := c.BindJSON(&scopeDictReq); err != nil {
+		panic(err)
+	}
+
+	var irMod ir.Module
+	if err := jsoniter.Unmarshal([]byte(scopeDictReq.IRModule), &irMod); err != nil {
+		panic(err)
+	}
+
+	scopeDict, errs := buildScopeDict(&irMod)
+
+	jsonScopeDict, err := jsoniter.MarshalIndent(scopeDict, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	resp := api.KrugResponse{
+		Data:   string(jsonScopeDict),
+		Errors: errs,
+	}
+
+	c.JSON(http.StatusOK, &resp)
+}
