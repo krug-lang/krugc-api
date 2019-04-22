@@ -31,7 +31,7 @@ func NewSymbol(name front.Token, owned bool) *Symbol {
 type SymbolTable struct {
 	ID        int                    `json:"id"`
 	OuterID   int                    `json:"outer_id,omitempty"`
-	Inner     *SymbolTable           `json:"inner,omitempty"`
+	Inner     []*SymbolTable         `json:"inner,omitempty"`
 	Types     map[string]*Type       `json:"types"`
 	Symbols   map[string]SymbolValue `json:"symbols"`
 	SymbolSet []string               `json:"symbol_set,omitempty"`
@@ -105,6 +105,7 @@ func NewSymbolTable(outer *SymbolTable) *SymbolTable {
 	return &SymbolTable{
 		ID:        rand.Intn(30000),
 		OuterID:   outerID,
+		Inner:     []*SymbolTable{},
 		Symbols:   map[string]SymbolValue{},
 		Types:     map[string]*Type{},
 		SymbolSet: []string{},

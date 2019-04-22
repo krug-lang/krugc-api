@@ -23,7 +23,7 @@ func (b *builder) pushStab(name string) *ir.SymbolTable {
 	old := b.curr
 	b.curr = ir.NewSymbolTable(old)
 	if old != nil {
-		old.Inner = b.curr
+		old.Inner = append(old.Inner, b.curr)
 	}
 	b.outer = old
 	return b.curr
@@ -179,6 +179,7 @@ func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 	scopeMap := ir.NewScopeMap()
 
 	for _, fn := range mod.Functions {
+		b.outer = nil
 		stab := b.visitFunc(fn)
 
 		ok := scopeMap.RegisterFunction(fn.Name.Value, stab)
