@@ -8,6 +8,7 @@ package middle
 */
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,15 +20,33 @@ import (
 type borrowChecker struct {
 }
 
-func (b *borrowChecker) validate(fn *ir.SymbolTable) {
+func (b *borrowChecker) visit(fn *ir.SymbolTable) {
+	fmt.Println(fn.SymbolSet)
+}
 
+func (b *borrowChecker) validate(rootStab *ir.SymbolTable) {
+	toVisit := []*ir.SymbolTable{}
+	toVisit = append(toVisit, rootStab)
+
+	for len(toVisit) != 0 {
+		top := toVisit[len(toVisit)-1]
+		toVisit = toVisit[:len(toVisit)-1]
+
+		b.visit(top)
+
+		for i := len(top.Inner) - 1; i >= 0; i-- {
+			block := top.Inner[i]
+			toVisit = append(toVisit, block)
+		}
+	}
 }
 
 func borrowCheck(mod *ir.Module, scopeMap *ir.ScopeMap) []api.CompilerError {
 	errs := []api.CompilerError{}
 
-	for _, fn := range scopeMap.Functions {
+	for name, fn := range scopeMap.Functions {
 		checker := &borrowChecker{}
+		fmt.Println("validating ", name)
 		checker.validate(fn)
 	}
 

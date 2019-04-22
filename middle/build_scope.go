@@ -132,7 +132,14 @@ func (b *builder) visitInstr(i *ir.Instruction) {
 	}
 }
 
+// hack we shouldnt have to do this in the first place?
+func (b *builder) clearScope() {
+	b.curr = nil
+	b.outer = nil
+}
+
 func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
+	b.clearScope()
 	res := b.pushStab(fn.Name.Value)
 
 	// reset the block count
