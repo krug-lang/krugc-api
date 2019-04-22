@@ -6,9 +6,17 @@ import (
 	"github.com/hugobrains/caasper/front"
 )
 
-type SymbolValue interface {
-	SymbolTypeName() string
-	GetType() *Type
+type SymbolValueKind string
+
+const (
+	SymbolKind SymbolValueKind = "stab"
+	SymbolTableKind
+)
+
+type SymbolValue struct {
+	Kind        SymbolValueKind
+	Symbol      *Symbol
+	SymbolTable *SymbolTable
 }
 
 type Symbol struct {
@@ -29,12 +37,12 @@ func NewSymbol(name front.Token, owned bool) *Symbol {
 }
 
 type SymbolTable struct {
-	ID        int                    `json:"id"`
-	OuterID   int                    `json:"outer_id,omitempty"`
-	Inner     []*SymbolTable         `json:"inner,omitempty"`
-	Types     map[string]*Type       `json:"types"`
-	Symbols   map[string]SymbolValue `json:"symbols"`
-	SymbolSet []string               `json:"symbol_set,omitempty"`
+	ID        int                     `json:"id"`
+	OuterID   int                     `json:"outer_id,omitempty"`
+	Inner     []*SymbolTable          `json:"inner,omitempty"`
+	Types     map[string]*Type        `json:"types"`
+	Symbols   map[string]*SymbolValue `json:"symbols"`
+	SymbolSet []string                `json:"symbol_set,omitempty"`
 }
 
 func (s *SymbolTable) String() string {
@@ -46,9 +54,10 @@ func (s *SymbolTable) String() string {
 			res += " "
 		}
 
-		switch sy := sym.(type) {
-		case *Symbol:
-			res += sy.Name.Value
+		// FIXMe
+		switch sym.Kind {
+		case SymbolKind:
+			res += sym.Symbol.Name.Value
 		}
 
 		idx++
@@ -78,7 +87,7 @@ func (s *SymbolTable) SymbolTypeName() string {
 // Register will register the given symbol in this stab. If a
 // symbol with the same name has alreayd been registered in this stab
 // it will return false.
-func (s *SymbolTable) Register(name string, sym SymbolValue) bool {
+func (s *SymbolTable) Register(name string, sym *SymbolValue) bool {
 	if _, ok := s.Symbols[name]; ok {
 		return false
 	}
@@ -87,7 +96,7 @@ func (s *SymbolTable) Register(name string, sym SymbolValue) bool {
 	return true
 }
 
-func (s *SymbolTable) Lookup(name string) (SymbolValue, bool) {
+func (s *SymbolTable) Lookup(name string) (*SymbolValue, bool) {
 	if sym, ok := s.Symbols[name]; ok {
 		if ok {
 			return sym, ok
@@ -106,7 +115,7 @@ func NewSymbolTable(outer *SymbolTable) *SymbolTable {
 		ID:        rand.Intn(30000),
 		OuterID:   outerID,
 		Inner:     []*SymbolTable{},
-		Symbols:   map[string]SymbolValue{},
+		Symbols:   map[string]*SymbolValue{},
 		Types:     map[string]*Type{},
 		SymbolSet: []string{},
 	}

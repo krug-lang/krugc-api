@@ -26,6 +26,13 @@ type BuildScopeMapRequest struct {
 	IRModule string `json:"ir_module"`
 }
 
+// borrowcheck
+
+type BorrowCheckRequest struct {
+	IRModule string `json:"ir_module"`
+	ScopeMap string `json:"scope_map"`
+}
+
 // ir build
 
 type IRBuildRequest struct {

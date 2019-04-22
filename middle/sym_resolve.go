@@ -29,7 +29,7 @@ func (s *symResolvePass) pop() {
 	}
 }
 
-func (s *symResolvePass) resolveIden(i *ir.Identifier) (ir.SymbolValue, bool) {
+func (s *symResolvePass) resolveIden(i *ir.Identifier) (*ir.SymbolValue, bool) {
 	val, ok := s.curr.Lookup(i.Name.Value)
 	if !ok {
 		s.error(api.NewUnresolvedSymbol(i.Name.Value, i.Name.Span...))
@@ -42,7 +42,7 @@ func (s *symResolvePass) resolveAssign(a *ir.Assign) {
 	s.resolveValue(a.RHand)
 }
 
-func (s *symResolvePass) resolveValue(e *ir.Value) ir.SymbolValue {
+func (s *symResolvePass) resolveValue(e *ir.Value) *ir.SymbolValue {
 	switch e.Kind {
 	case ir.IntegerValueValue:
 		return nil
@@ -93,7 +93,7 @@ func (s *symResolvePass) resolveCall(c *ir.Call) {
 	// TODO:
 }
 
-func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val *ir.Value) ir.SymbolValue {
+func (s *symResolvePass) resolveValueVia(last *ir.SymbolTable, val *ir.Value) *ir.SymbolValue {
 	if last == nil {
 		return s.resolveValue(val)
 	}

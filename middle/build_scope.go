@@ -81,14 +81,20 @@ func (b *builder) visitInstr(i *ir.Instruction) {
 
 	case ir.AllocaInstr:
 		instr := i.Alloca
-		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name, instr.Owned))
+		ok := b.curr.Register(instr.Name.Value, &ir.SymbolValue{
+			Kind:   ir.SymbolKind,
+			Symbol: ir.NewSymbol(instr.Name, instr.Owned),
+		})
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
 
 	case ir.LocalInstr:
 		instr := i.Local
-		ok := b.curr.Register(instr.Name.Value, ir.NewSymbol(instr.Name, instr.Owned))
+		ok := b.curr.Register(instr.Name.Value, &ir.SymbolValue{
+			Kind:   ir.SymbolKind,
+			Symbol: ir.NewSymbol(instr.Name, instr.Owned),
+		})
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
 		}
@@ -134,7 +140,10 @@ func (b *builder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 
 	// introduce params into the function scope.
 	for idx, name := range fn.Param.Order {
-		ok := b.curr.Register(name.Value, ir.NewSymbol(name, fn.Param.Owned[idx]))
+		ok := b.curr.Register(name.Value, &ir.SymbolValue{
+			Kind:   ir.SymbolKind,
+			Symbol: ir.NewSymbol(name, fn.Param.Owned[idx]),
+		})
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
 		}
@@ -155,7 +164,10 @@ func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	stab := b.pushStab(s.Name.Value)
 
 	for _, name := range s.Fields.Order {
-		ok := stab.Register(name.Value, ir.NewSymbol(name, false))
+		ok := stab.Register(name.Value, &ir.SymbolValue{
+			Kind:   ir.SymbolKind,
+			Symbol: ir.NewSymbol(name, false),
+		})
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
 		}
