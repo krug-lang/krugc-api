@@ -211,17 +211,16 @@ func NewIdentifier(name front.Token) *Identifier {
 
 type Builtin struct {
 	Name string
-	Type *Type
+	Iden *Identifier
 	Args []*Value
 }
 
 func (b *Builtin) InferredType() *Type {
-	// HM
-	return b.Type
+	panic("todo")
 }
 
-func NewBuiltin(name string, typ *Type, args []*Value) *Builtin {
-	return &Builtin{name, typ, args}
+func NewBuiltin(name string, iden *Identifier, args []*Value) *Builtin {
+	return &Builtin{name, iden, args}
 }
 
 // CALL

@@ -65,7 +65,9 @@ func main() {
 			b.POST("/type", middle.BuildType)
 		}
 
-		m.POST("/borrowcheck", middle.BorrowCheck)
+		// TODO grouping for these?
+		m.POST("/borrow_check", middle.BorrowCheck)
+		m.POST("mut_check", middle.MutabilityCheck)
 
 		r := m.Group("/resolve")
 		{

@@ -750,7 +750,6 @@ func (p *astParser) parseOperand() *ExpressionNode {
 }
 
 func (p *astParser) parseBuiltin() *ExpressionNode {
-	start := p.pos
 	builtin := p.expectKind(Identifier)
 	p.expect("!")
 
@@ -760,10 +759,9 @@ func (p *astParser) parseBuiltin() *ExpressionNode {
 		p.consume()
 	}
 
-	typ := p.parseType()
-	if typ == nil {
-		p.error(api.NewParseError("type in builtin", start, p.pos))
-	}
+	// could be type though?
+	// alloc!int
+	ref := p.expectKind(Identifier)
 
 	args := []*ExpressionNode{}
 
@@ -787,8 +785,14 @@ func (p *astParser) parseBuiltin() *ExpressionNode {
 	}
 
 	return &ExpressionNode{
-		Kind:                  BuiltinExpression,
-		BuiltinExpressionNode: &BuiltinExpressionNode{builtin.Value, typ, args},
+		Kind: BuiltinExpression,
+		BuiltinExpressionNode: &BuiltinExpressionNode{
+			builtin.Value,
+			&VariableReferenceNode{
+				ref,
+			},
+			args,
+		},
 	}
 }
 

@@ -148,7 +148,7 @@ func (b *builder) buildBuiltin(e *front.BuiltinExpressionNode) *Value {
 	}
 	return &Value{
 		Kind:    BuiltinValue,
-		Builtin: NewBuiltin(e.Name, b.buildType(e.Type), args),
+		Builtin: NewBuiltin(e.Name, NewIdentifier(e.Iden.Name), args),
 	}
 }
 
@@ -342,7 +342,7 @@ func (b *builder) buildLetStat(l *front.LetStatementNode) *Instruction {
 
 	local := NewLocal(l.Name, typ, l.Owned)
 	local.SetValue(val)
-	local.SetMutable(true)
+	local.SetMutable(false)
 	return &Instruction{
 		Kind:  LocalInstr,
 		Local: local,

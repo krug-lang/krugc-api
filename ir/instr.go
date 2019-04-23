@@ -146,18 +146,19 @@ func NewLocal(name front.Token, typ *Type, owned bool) *Local {
 // ALLOCA
 
 type Alloca struct {
-	Name  front.Token
-	Type  *Type
-	Owned bool
-	Val   *Value
+	Name    front.Token
+	Type    *Type
+	Mutable bool
+	Owned   bool
+	Val     *Value
 }
 
 func (a *Alloca) SetValue(v *Value) {
 	a.Val = v
 }
 
-func NewAlloca(name front.Token, owned bool, typ *Type) *Alloca {
-	return &Alloca{name, typ, owned, nil}
+func NewAlloca(name front.Token, mutable bool, owned bool, typ *Type) *Alloca {
+	return &Alloca{name, typ, mutable, owned, nil}
 }
 
 // NEXT, BREAK

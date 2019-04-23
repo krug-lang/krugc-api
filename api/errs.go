@@ -85,3 +85,13 @@ func NewMovedValueError(name string, points ...int) CompilerError {
 		CodeContext: points,
 	}
 }
+
+func NewMutabilityError(name string, points ...int) CompilerError {
+	return CompilerError{
+		ErrorCode:   0007,
+		Title:       fmt.Sprintf("Attempting to modify constant value '%s'", name),
+		Desc:        "",
+		Fatal:       false,
+		CodeContext: points,
+	}
+}

@@ -24,7 +24,7 @@ type LambdaExpressionNode struct {
 }
 type BuiltinExpressionNode struct {
 	Name string
-	Type *TypeNode
+	Iden *VariableReferenceNode
 	Args []*ExpressionNode
 }
 type VariableExpressionNode struct {

@@ -226,29 +226,31 @@ func (e *emitter) buildAlloca(a *ir.Alloca) {
 }
 
 func (e *emitter) buildAllocBuiltin(b *ir.Builtin) string {
-	bType := e.writeType(b.Type)
+	val := b.Iden.Name.Value
 
 	// always 1 * sizeof unless specified.
 	num := "1"
 	if len(b.Args) > 0 {
 		num = e.buildExpr(b.Args[0])
 	}
-	return fmt.Sprintf("malloc(sizeof(%s) * %s)", bType, num)
+	return fmt.Sprintf("malloc(sizeof(%s) * %s)", val, num)
 }
 
 func (e *emitter) buildBuiltin(b *ir.Builtin) string {
-	bType := e.writeType(b.Type)
+	iden := b.Iden.Name.Value
+	// TODO the iden here is wrong...
+
 	switch b.Name {
 	case "sizeof":
-		return fmt.Sprintf("sizeof(%s)", bType)
+		return fmt.Sprintf("sizeof(%s)", iden)
 	case "alloc":
 		return e.buildAllocBuiltin(b)
 	case "free":
-		return fmt.Sprintf("free(%s)", bType)
+		return fmt.Sprintf("free(%s)", iden)
 	case "move":
-		return fmt.Sprintf("(/*move*/%s)", bType)
+		return fmt.Sprintf("(/*move*/%s)", iden)
 	case "ref":
-		return fmt.Sprintf("(/*ref*/%s)", bType)
+		return fmt.Sprintf("(/*ref*/%s)", iden)
 	default:
 		panic(fmt.Sprintf("unimplemented builtin %s", b.Name))
 	}

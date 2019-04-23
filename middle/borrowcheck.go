@@ -58,17 +58,23 @@ func newLifetime(outer *lifetime) *lifetime {
 }
 
 type local struct {
-	loc   *ir.Local
-	loans []*ir.Value
+	loc       *ir.Local
+	loans     []*ir.Value
+	borrowers []*ir.Value
 }
 
 func newLoc(loc *ir.Local) *local {
-	return &local{loc, []*ir.Value{}}
+	return &local{loc, []*ir.Value{}, []*ir.Value{}}
 }
 
 func (l *local) loanTo(v *ir.Value) {
 	fmt.Println("loaning", l.loc.Name.Value)
 	l.loans = append(l.loans, v)
+}
+
+func (l *local) addBorrower(v *ir.Value) {
+	fmt.Println("borrow", l.loc.Name.Value)
+	l.borrowers = append(l.borrowers, v)
 }
 
 type borrowChecker struct {
@@ -116,7 +122,8 @@ func (b *borrowChecker) error(err api.CompilerError) {
 }
 
 func (b *borrowChecker) pushLifetime() {
-	b.lifetime = newLifetime(nil)
+	newLifetime := newLifetime(b.lifetime)
+	b.lifetime = newLifetime
 }
 
 func (b *borrowChecker) visitLocal(loc *ir.Local) {
@@ -146,11 +153,42 @@ func (b *borrowChecker) visitCall(call *ir.Call) {
 func (b *borrowChecker) getIdentifierRef(iden *ir.Identifier) *local {
 	owner := b.lifetime.findLocal(iden.Name.Value)
 	if owner != nil {
+		return owner
+	}
+	return nil
+}
+
+func (b *borrowChecker) visitBuiltin(lhand *ir.Value, builtin *ir.Builtin) {
+	if strings.Compare(builtin.Name, "ref") != 0 {
+		return
+	}
+
+	owner := b.getIdentifierRef(builtin.Iden)
+	if owner != nil && lhand != nil {
+		// as many borrowers as we want.
+		// these borrows are _immutable_
+		owner.addBorrower(lhand)
+	}
+}
+
+func (b *borrowChecker) tryLoan(iden *ir.Identifier, loanee *ir.Value) {
+	owner := b.getIdentifierRef(iden)
+	if owner != nil {
+
+		// TODO this error could also show who the value has been
+		// loaned to prior?
 		if len(owner.loans) >= 1 {
 			b.error(api.NewMovedValueError(iden.Name.Value, iden.Name.Span...))
 		}
 	}
-	return owner
+
+	// sometimes the loanee can be nil as we
+	// dont know who the loan is going to, e.g.
+	// return X
+	// we loan X to the function return val?
+	if owner != nil && loanee != nil {
+		owner.loanTo(loanee)
+	}
 }
 
 func (b *borrowChecker) visitExpr(lhand *ir.Value, expr *ir.Value) {
@@ -158,12 +196,10 @@ func (b *borrowChecker) visitExpr(lhand *ir.Value, expr *ir.Value) {
 	case ir.CallValue:
 		b.visitCall(expr.Call)
 	case ir.IdentifierValue:
-		owner := b.getIdentifierRef(expr.Identifier)
+		b.tryLoan(expr.Identifier, lhand)
 
-		// BUG IMPORTANT
-		if owner != nil && lhand != nil {
-			owner.loanTo(lhand)
-		}
+	case ir.UnaryExpressionValue:
+		b.visitExpr(lhand, expr.UnaryExpression.Val)
 
 	case ir.BinaryExpressionValue:
 		b.visitExpr(lhand, expr.BinaryExpression.LHand)
@@ -176,8 +212,14 @@ func (b *borrowChecker) visitExpr(lhand *ir.Value, expr *ir.Value) {
 	case ir.StringValueValue:
 		break
 
+	case ir.BuiltinValue:
+		b.visitBuiltin(lhand, expr.Builtin)
+
 	case ir.AssignValue:
 		b.visitExpr(expr.Assign.LHand, expr.Assign.RHand)
+
+	case ir.PathValue:
+		// TODO!
 
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", expr.Kind))
@@ -217,12 +259,16 @@ func (b *borrowChecker) visitInstr(parent *ir.Block, instr *ir.Instruction) {
 		b.visitBlock(instr.IfStatement.True)
 		// TODO else if and elses.
 
+	case ir.JumpInstr:
+	case ir.LabelInstr:
+
 	default:
 		panic(fmt.Sprintf("unhandled instruction %s", instr.Kind))
 	}
 }
 
 func (b *borrowChecker) popLifetime() {
+	b.lifetime = b.lifetime.outer
 }
 
 func (b *borrowChecker) visitBlockPre(block *ir.Block, preVisit func()) {

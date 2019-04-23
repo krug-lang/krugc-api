@@ -107,7 +107,7 @@ func (b *scopeDictBuilder) visitInstr(i *ir.Instruction) {
 		instr := i.Alloca
 		ok := b.curr.Register(instr.Name.Value, &ir.SymbolValue{
 			Kind:   ir.SymbolKind,
-			Symbol: ir.NewSymbol(instr.Name, instr.Owned),
+			Symbol: ir.NewSymbol(instr.Name, instr.Owned, instr.Mutable),
 		})
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
@@ -117,7 +117,7 @@ func (b *scopeDictBuilder) visitInstr(i *ir.Instruction) {
 		instr := i.Local
 		ok := b.curr.Register(instr.Name.Value, &ir.SymbolValue{
 			Kind:   ir.SymbolKind,
-			Symbol: ir.NewSymbol(instr.Name, instr.Owned),
+			Symbol: ir.NewSymbol(instr.Name, instr.Owned, instr.Mutable),
 		})
 		if !ok {
 			b.error(api.NewSymbolError(instr.Name.Value, instr.Name.Span...))
@@ -137,22 +137,24 @@ func (b *scopeDictBuilder) visitInstr(i *ir.Instruction) {
 		instr := i.Block
 		b.visitBlock(instr)
 
+	case ir.LabelInstr:
+	case ir.JumpInstr:
 	case ir.ReturnInstr:
 		// nop
 
 	case ir.ExpressionInstr:
 		fmt.Println(i.ExpressionStatement)
 
-		/*
-			case *ir.Path:
-				return
-			case *ir.Return:
-				return
-			case *ir.Call:
-				return
-			case *ir.Assign:
-				return
-		*/
+	/*
+		case *ir.Path:
+			return
+		case *ir.Return:
+			return
+		case *ir.Call:
+			return
+		case *ir.Assign:
+			return
+	*/
 
 	default:
 		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
@@ -178,9 +180,10 @@ func (b *scopeDictBuilder) visitFunc(fn *ir.Function) *ir.SymbolTable {
 
 	// introduce params into the function scope.
 	for _, name := range fn.Param.Order {
+		param := fn.Param.Data[name.Value]
 		ok := b.curr.Register(name.Value, &ir.SymbolValue{
 			Kind:   ir.SymbolKind,
-			Symbol: ir.NewSymbol(name, fn.Param.Data[name.Value].Owned),
+			Symbol: ir.NewSymbol(name, param.Owned, param.Mutable),
 		})
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))
@@ -203,8 +206,11 @@ func (b *scopeDictBuilder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 
 	for _, name := range s.Fields.Order {
 		ok := stab.Register(name.Value, &ir.SymbolValue{
-			Kind:   ir.SymbolKind,
-			Symbol: ir.NewSymbol(name, false),
+			Kind: ir.SymbolKind,
+			// structure fields are:
+			// - not owners of their memory (? FIXME)
+			// - mutable
+			Symbol: ir.NewSymbol(name, false, true),
 		})
 		if !ok {
 			b.error(api.NewSymbolError(name.Value, name.Span...))

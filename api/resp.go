@@ -37,6 +37,13 @@ type BorrowCheckRequest struct {
 	ScopeMap string `json:"scope_map"`
 }
 
+// mut check
+
+type MutabilityCheckRequest struct {
+	IRModule string `json:"ir_module"`
+	ScopeMap string `json:"scope_map"`
+}
+
 // ir build
 
 type IRBuildRequest struct {

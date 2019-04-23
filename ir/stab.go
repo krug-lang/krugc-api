@@ -20,8 +20,9 @@ type SymbolValue struct {
 }
 
 type Symbol struct {
-	Name  front.Token `json:"name"`
-	Owned bool        `json:"owned"`
+	Name    front.Token `json:"name"`
+	Owned   bool        `json:"owned"`
+	Mutable bool        `json:"mutable"`
 }
 
 func (s *Symbol) GetType() *Type {
@@ -32,8 +33,8 @@ func (s *Symbol) SymbolTypeName() string {
 	return "symbol"
 }
 
-func NewSymbol(name front.Token, owned bool) *Symbol {
-	return &Symbol{name, owned}
+func NewSymbol(name front.Token, owned bool, mutable bool) *Symbol {
+	return &Symbol{name, owned, mutable}
 }
 
 type SymbolTable struct {
