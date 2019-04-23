@@ -207,7 +207,15 @@ func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclar
 	}
 	p.expect(")")
 
-	typ := p.parseType()
+	var typ *TypeNode
+
+	// { 	FuncDecl body
+	// ; 	type in a let statement, e.g.
+	// , 	member in a structure
+	// if we dont have any of these, parse a type!
+	if !p.next().Matches("{", ";", ",") {
+		typ = p.parseType()
+	}
 
 	return &FunctionPrototypeDeclaration{
 		Name:      name,
