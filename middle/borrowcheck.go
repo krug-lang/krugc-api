@@ -176,6 +176,9 @@ func (b *borrowChecker) visitExpr(lhand *ir.Value, expr *ir.Value) {
 	case ir.StringValueValue:
 		break
 
+	case ir.AssignValue:
+		b.visitExpr(expr.Assign.LHand, expr.Assign.RHand)
+
 	default:
 		panic(fmt.Sprintf("unhandled expr %s", expr.Kind))
 	}
@@ -195,6 +198,25 @@ func (b *borrowChecker) visitInstr(parent *ir.Block, instr *ir.Instruction) {
 		if ret.Val != nil {
 			b.visitExpr(nil, ret.Val)
 		}
+
+	case ir.WhileLoopInstr:
+		b.visitExpr(nil, instr.WhileLoop.Cond)
+		if post := instr.WhileLoop.Post; post != nil {
+			b.visitExpr(nil, post)
+		}
+		b.visitBlock(instr.WhileLoop.Body)
+
+	case ir.LoopInstr:
+		b.visitBlock(instr.Loop.Body)
+
+	case ir.BreakInstr:
+		break
+
+	case ir.IfStatementInstr:
+		b.visitExpr(nil, instr.IfStatement.Cond)
+		b.visitBlock(instr.IfStatement.True)
+		// TODO else if and elses.
+
 	default:
 		panic(fmt.Sprintf("unhandled instruction %s", instr.Kind))
 	}

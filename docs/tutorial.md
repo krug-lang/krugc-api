@@ -161,19 +161,61 @@ Functions are denoted with the `fn` keyword. They must specify a return type.
 
 ### `loop`
 
+    loop {
+        // forever!
+    }
+
 ### `while` loop
+
+    mut i = 0;
+    while i < 10; i += 1 {
+        
+    }
 
 ### `next`/`continue`/`break`
 
-## control flow
+    loop {
+        break;
+    }
 
 ## `defer`
 
+    let file = fopen("file.txt", "r");
+    defer fclose(file);
+
+## control flow
+
 ### if/else if/else
+
+    if 1 == 2 {
+        // doesn't execute!
+    } else {
+        // executes.
+    }
+
+    if 1 == 2 {
+
+    } else if 1 == 3 {
+
+    } else {
+
+    }
 
 ### switch
 
+    let age = 20;
+    switch age {
+        // TODO!
+    }
+
 ### labels & `jump`
+
+    $foo;
+        jump foo; // TODO jump $foo; ?
+
+## types
+
+### primitive types
 
 ## structures
 
@@ -182,10 +224,26 @@ Functions are denoted with the `fn` keyword. They must specify a return type.
         age int,
     }
 
+### `impl`
+
+    struct Dog {
+        name string,
+    }
+    
+    impl Dog {
+        // TODO!
+    }
+
 ## enums
 
     TODO
 
 ## traits
 
-## `impl`
+    TODO
+
+## tuples
+
+## function types
+
+## arrays

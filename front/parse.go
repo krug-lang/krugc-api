@@ -271,10 +271,10 @@ func (p *astParser) parseLet() *ParseTreeNode {
 
 	p.expect(let)
 
-	owned := false
+	owned := true
 	if p.next().Matches("~") {
 		p.consume()
-		owned = true
+		owned = false
 	}
 
 	name := p.expectKind(Identifier)
