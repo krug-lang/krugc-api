@@ -26,14 +26,18 @@ func (p *parser) next() (tok Token) {
 
 func (p *parser) expect(val string) (tok Token) {
 	start := p.pos
+
 	if p.hasNext() {
 		if tok = p.consume(); tok.Matches(val) {
 			return tok
 		}
+
+		err := api.NewUnexpectedToken(val, tok.Value, start, p.pos)
+		p.error(err)
+		return BadToken
 	}
 
-	err := api.NewUnexpectedToken(val, p.next().Value, start, p.pos)
-	p.error(err)
+	p.error(api.NewUnimplementedError("End of input on expect: " + val))
 	return BadToken
 }
 
