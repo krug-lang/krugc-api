@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/caasper/api"
-	"github.com/hugobrains/caasper/ir"
+	"github.com/krug-lang/caasper/api"
+	"github.com/krug-lang/caasper/ir"
 )
 
 func Gen(c *gin.Context) {

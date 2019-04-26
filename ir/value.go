@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 )
 
 type ValueKind string

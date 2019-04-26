@@ -3,7 +3,7 @@ package ir
 import (
 	"math/rand"
 
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 )
 
 type SymbolValueKind string

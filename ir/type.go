@@ -3,7 +3,7 @@ package ir
 import (
 	"fmt"
 
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 )
 
 type TypeOf string

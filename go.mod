@@ -1,4 +1,4 @@
-module github.com/hugobrains/caasper
+module github.com/krug-lang/caasper
 
 go 1.12
 

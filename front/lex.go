@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 const eof = -1

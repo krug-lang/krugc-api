@@ -1,7 +1,7 @@
 package ir
 
 import (
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 )
 
 // MODULE

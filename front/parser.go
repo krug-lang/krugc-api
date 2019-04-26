@@ -1,7 +1,7 @@
 package front
 
 import (
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 type parser struct {

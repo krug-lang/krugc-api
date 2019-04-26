@@ -8,7 +8,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 func Comments(c *gin.Context) {

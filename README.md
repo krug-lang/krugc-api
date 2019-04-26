@@ -2,7 +2,7 @@
 This repository is the compiler for Krug: Caasper. Most of the actual compilation 
 work is done here, the frontends job is simply to communicate with Caasper.
 
-You will need both the krug [frontend](//github.com/hugobrains/krug), and
+You will need both the krug [frontend](//github.com/krug-lang/krug), and
 an instance of Caasper running locally - or on the cloud somewhere - for you to 
 compile krug programs.
 
@@ -20,7 +20,7 @@ the exposed API.
 
 ## overview
 The language itself is not so much the focus of this project. You can see
-some code examples in the [tests](//github.com/hugobrains/krug/tree/master/tests) directory.
+some code examples in the [tests](//github.com/krug-lang/krug/tree/master/tests) directory.
 
 For a brief overview, Krug is:
 
