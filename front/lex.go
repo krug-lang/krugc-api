@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 const eof = -1
@@ -96,18 +96,17 @@ func lexNumber(l *lexer) stateFn {
 }
 
 func lexChar(l *lexer) stateFn {
-	if !l.accept(`'`) {
-		panic("expect")
-	}
+Loop:
 	for {
-		switch r := l.consume(); {
+		switch l.consume() {
 		default:
-			// consume
-		case r == '\'':
-			l.emit(Char)
-			return lexStart
+
+		case '\'':
+			break Loop
 		}
 	}
+	l.emit(Char)
+	return lexStart
 }
 
 func lexQuote(l *lexer) stateFn {

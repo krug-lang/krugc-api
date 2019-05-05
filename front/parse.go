@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 // keywords
@@ -418,31 +418,39 @@ func (p *astParser) parseIfElseChain() *ParseTreeNode {
 	var elseBlock *BlockNode
 	elses := []*ElseIfNode{}
 
-	for p.hasNext() && p.next().Matches("else") {
-		// else if
-		if p.peek(1).Matches("if") {
+	if p.next().Matches("else") && (p.hasNext() && p.peek(1).Matches("if")) {
+		for p.hasNext() {
 			p.expect("else")
 			p.expect("if")
+
 			cond := p.parseExpression()
 			if cond == nil {
 				p.error(api.NewParseError("condition in else if", start, p.pos))
+				break
 			}
+
+			fmt.Println(cond, " and then ", p.next())
 
 			body := p.parseStatBlock()
 			if body == nil {
 				p.error(api.NewParseError("block after else if", start, p.pos))
+				break
 			}
-			elses = append(elses, &ElseIfNode{cond, body})
-		} else {
-			// TODO we could easily check if else has been set before
-			// or should we do this in a later pass during sema analyis?
 
-			p.expect("else")
-			elseBlock = p.parseStatBlock()
-			if elseBlock == nil {
-				p.error(api.NewParseError("block after else", start, p.pos))
-			}
+			elses = append(elses, &ElseIfNode{cond, body})
 		}
+	} else if p.next().Matches("else") {
+		p.expect("else")
+
+		body := p.parseStatBlock()
+		if body == nil {
+			p.error(api.NewParseError("block after else", start, p.pos))
+		}
+
+		if elseBlock != nil {
+			// we already have an else, throw an error.
+		}
+		elseBlock = body
 	}
 
 	return &ParseTreeNode{

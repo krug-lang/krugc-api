@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/front"
 
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/caasper/api"
-	"github.com/hugobrains/caasper/ir"
+	"github.com/krug-lang/caasper/api"
+	"github.com/krug-lang/caasper/ir"
 )
 
 func Gen(c *gin.Context) {
@@ -640,8 +640,12 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		"stdlib.h",
 		"string.h",
 
+		// TODO includes should be injected
+		// from the module directives.
+
 		// delete! this is for the frontend.
 		"SDL2/SDL.h",
+		"SDL2/SDL_image.h",
 	}
 	for _, h := range headers {
 		e.writeln(`#include <%s>`, h)

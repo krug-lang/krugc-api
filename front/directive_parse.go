@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hugobrains/caasper/api"
+	"github.com/krug-lang/caasper/api"
 )
 
 type directiveParser struct {

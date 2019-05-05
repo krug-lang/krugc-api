@@ -8,8 +8,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hugobrains/caasper/api"
-	"github.com/hugobrains/caasper/front"
+	"github.com/krug-lang/caasper/api"
+	"github.com/krug-lang/caasper/front"
 )
 
 // Build takes the given []ParseTree's

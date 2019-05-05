@@ -3,8 +3,8 @@ package middle
 import (
 	"reflect"
 
-	"github.com/hugobrains/caasper/api"
-	"github.com/hugobrains/caasper/ir"
+	"github.com/krug-lang/caasper/api"
+	"github.com/krug-lang/caasper/ir"
 )
 
 type decl struct {
