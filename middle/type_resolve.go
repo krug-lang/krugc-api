@@ -93,7 +93,7 @@ func (t *typeResolvePass) resolveVia(typ *ir.Type, val *ir.Value) *ir.Type {
 		return loc.Type
 
 	default:
-		t.error(api.NewUnimplementedError(reflect.TypeOf(typ).String()))
+		t.error(api.NewUnimplementedError("type_resolve", reflect.TypeOf(typ).String()))
 	}
 
 	return nil

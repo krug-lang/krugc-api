@@ -73,7 +73,6 @@ func (s *SymbolTable) RegisterType(name string, t *Type) {
 
 func (s *SymbolTable) LookupType(name string) (*Type, bool) {
 	typ, ok := s.Types[name]
-	// TODO look in outer scope?
 	return typ, ok
 }
 

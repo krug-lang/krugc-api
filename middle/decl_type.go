@@ -35,7 +35,7 @@ func (d *decl) regType(name string, t *ir.Type) {
 
 func (d *decl) visitLocal(l *ir.Local) {
 	if l.Type == nil {
-		d.error(api.NewUnimplementedError("type inference"))
+		d.error(api.NewUnimplementedError("decl_type", "type inference"))
 		return
 	}
 
@@ -60,7 +60,7 @@ func (d *decl) visitLocal(l *ir.Local) {
 
 func (d *decl) visitAlloca(a *ir.Alloca) {
 	if a.Type == nil {
-		d.error(api.NewUnimplementedError("type inference"))
+		d.error(api.NewUnimplementedError("decl_type", "type inference"))
 		return
 	}
 	d.regType(a.Name.Value, a.Type)
@@ -84,7 +84,7 @@ func (d *decl) visitInstr(i *ir.Instruction) {
 		return
 
 	default:
-		d.error(api.NewUnimplementedError("visitInstr: " + reflect.TypeOf(i).String()))
+		d.error(api.NewUnimplementedError("decl_type", "visitInstr: "+reflect.TypeOf(i).String()))
 	}
 }
 

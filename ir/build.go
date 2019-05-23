@@ -3,7 +3,6 @@ package ir
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -66,7 +65,6 @@ func (b *builder) buildPointerType(p *front.PointerTypeNode) *PointerType {
 }
 
 func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
-	// TODO should be constant expr.
 	size := b.buildExpr(p.Size)
 
 	base := b.buildType(p.Base)
@@ -76,44 +74,79 @@ func (b *builder) buildArrayType(p *front.ArrayTypeNode) *Type {
 	}
 }
 
-func (b *builder) buildTupleType(tup *front.TupleTypeNode) *TupleType {
+func (b *builder) buildStructureType(struc *front.StructureTypeNode) *Type {
+	fields := newTypeDict()
+	for _, sf := range struc.Fields {
+		typ := b.buildType(sf.Type)
+		fields.Add(NewLocal(sf.Name, typ, sf.Owned))
+	}
+	return &Type{
+		Kind:      StructKind,
+		Structure: NewStructure(struc.Name, fields),
+	}
+}
+
+func (b *builder) buildTupleType(tup *front.TupleTypeNode) *Type {
 	types := []*Type{}
 	for _, typ := range tup.Types {
 		types = append(types, b.buildType(typ))
 	}
-	return NewTupleType(types)
+	return &Type{
+		Kind:  TupleKind,
+		Tuple: NewTupleType(types),
+	}
 }
 
-func (b *builder) buildType(node *front.TypeNode) *Type {
+func (b *builder) buildTypeExpr(te *front.TypeNode) *Type {
+	switch te.Kind {
+	case front.ArrayType:
+		return b.buildArrayType(te.ArrayTypeNode)
+	case front.UnresolvedType:
+		return b.buildUnresolvedType(te.UnresolvedTypeNode)
+	case front.TupleType:
+		return b.buildTupleType(te.TupleTypeNode)
+	case front.StructureType:
+		return b.buildStructureType(te.StructureTypeNode)
+	default:
+		panic(fmt.Sprintf("unimplemented type_expr %s", te.Kind))
+	}
+}
+
+func (b *builder) buildConstType(node *front.ConstantNode) *Type {
 	resp := &Type{}
 
 	switch node.Kind {
-	case front.UnresolvedType:
-		return b.buildUnresolvedType(node.UnresolvedTypeNode)
+	case front.IntegerConstant:
+		resp.IntegerType = NewIntegerType(32, true)
+		resp.Kind = IntegerKind
+	case front.FloatingConstant:
+		resp.FloatingType = NewFloatingType(64)
+		resp.Kind = FloatKind
 
-	case front.PointerType:
-		resp.Pointer = b.buildPointerType(node.PointerTypeNode)
-		resp.Kind = PointerKind
-
-	case front.TupleType:
-		resp.Tuple = b.buildTupleType(node.TupleTypeNode)
-		resp.Kind = TupleKind
-
-	case front.ArrayType:
-		return b.buildArrayType(node.ArrayTypeNode)
+	case front.VariableReference:
+		resp.Kind = ReferenceKind
 
 	default:
-		panic(fmt.Sprintf("unimplemented type %s", reflect.TypeOf(node)))
+		panic(fmt.Sprintf("unimplemented buildConstType %s", node.Kind))
 	}
-
 	return resp
 }
 
-// here we build a structure, give it an EMPTY type dictionary
-// of the fields.
-func (b *builder) declareStructure(node *front.StructureDeclaration) *Structure {
-	fields := newTypeDict()
-	return NewStructure(node.Name, fields)
+func (b *builder) buildType(node *front.ExpressionNode) *Type {
+	resp := &Type{}
+
+	switch node.Kind {
+	case front.TypeExpression:
+		resp = b.buildTypeExpr(node.TypeExpressionNode)
+
+	case front.ConstantExpression:
+		resp = b.buildConstType(node.ConstantNode)
+
+	default:
+		panic(fmt.Sprintf("unimplemented type %s", node.Kind))
+	}
+
+	return resp
 }
 
 func (b *builder) buildBinaryExpr(e *front.BinaryExpressionNode) *Value {
@@ -179,8 +212,6 @@ func (b *builder) buildPathExpression(p *front.PathExpressionNode) *Value {
 	for _, e := range p.Values {
 		val := b.buildExpr(e)
 
-		// stupid hack to flatten the path expressions
-		// TODO(felix): fix the parser for this.
 		if val.Kind == PathValue {
 			path := val.Path
 			for _, val := range path.Values {
@@ -523,6 +554,13 @@ func (b *builder) buildStat(stat *front.ParseTreeNode) *Instruction {
 			ExpressionStatement: b.buildExpr(stat.ExpressionStatementNode),
 		}
 
+	case front.TypeAliasStatement:
+		typ := b.buildType(stat.TypeAliasNode.Type)
+		return &Instruction{
+			Kind:               TypeAliasInstr,
+			TypeAliasStatement: NewTypeAlias(stat.TypeAliasNode.Name, typ),
+		}
+
 	case front.JumpStatement:
 		return &Instruction{
 			Kind: JumpInstr,
@@ -558,78 +596,39 @@ func (b *builder) buildFunc(node *front.FunctionDeclaration) *Function {
 	return fn
 }
 
+func (b *builder) buildTypeAlias(nt *front.TypeAliasNode) *Instruction {
+	typ := b.buildType(nt.Type)
+	return &Instruction{
+		Kind:               TypeAliasInstr,
+		TypeAliasStatement: NewTypeAlias(nt.Name, typ),
+	}
+}
+
+func (b *builder) introduceNamedTypes(nodes []*front.ParseTreeNode) {
+	for _, node := range nodes {
+		if node.Kind != front.TypeAliasStatement {
+			continue
+		}
+		alias := b.buildTypeAlias(node.TypeAliasNode)
+		b.mod.Global.AddInstr(alias)
+	}
+}
+
+func (b *builder) buildFunctions(nodes []*front.ParseTreeNode) {
+	for _, node := range nodes {
+		if node.Kind != front.FunctionDeclStatement {
+			continue
+		}
+		fn := b.buildFunc(node.FunctionDeclaration)
+		b.mod.RegisterFunction(fn)
+	}
+}
+
+// buildTree takes the given set of nodes, and builds a module
+// from them.
 func (b *builder) buildTree(m *Module, nodes []*front.ParseTreeNode) {
-	structureNodes := []*front.StructureDeclaration{}
-	implNodes := []*front.ImplDeclaration{}
-
-	// TODO it might be faster to do one loop and append
-	// all the types into arrays then process the arrays.
-
-	// declare all structures, impls, exist.
-	for _, n := range nodes {
-		switch n.Kind {
-		case front.StructureDeclStatement:
-			struc := n.StructureDeclaration
-			structureNodes = append(structureNodes, struc)
-			m.RegisterStructure(b.declareStructure(struc))
-
-		case front.ImplDeclStatement:
-			impl := n.ImplDeclaration
-			implNodes = append(implNodes, impl)
-			if m.RegisterImpl(NewImpl(impl.Name)) {
-				b.error(api.CompilerError{
-					Title: fmt.Sprintf("Duplicate implementation for '%s'", impl.Name),
-					Desc:  "...",
-				})
-			}
-		}
-	}
-
-	// go through structures again
-	// this time process the fields
-	for _, sn := range structureNodes {
-		structure, ok := m.GetStructure(sn.Name.Value)
-		if !ok {
-			panic(fmt.Sprintf("couldn't find structure %s", sn.Name))
-		}
-
-		// FIXME
-		// fields should maybe be a (TypeDict) LocalDict? or something
-		for _, tn := range sn.Fields {
-			typ := b.buildType(tn.Type)
-			if typ == nil {
-				panic("couldn't build type when setting structure field")
-			}
-			structure.Fields.Add(NewLocal(tn.Name, typ, tn.Owned))
-		}
-	}
-
-	for _, in := range implNodes {
-		impl, ok := m.GetImpl(in.Name.Value)
-		if !ok {
-			panic(fmt.Sprintf("couldn't find impl %s", in.Name))
-		}
-
-		for _, fn := range in.Functions {
-			builtFunc := b.buildFunc(fn)
-			ok := impl.RegisterMethod(builtFunc)
-			if !ok {
-				b.error(api.NewSymbolError(fn.Name.Value, fn.Name.Span...))
-			}
-		}
-	}
-
-	// TODO do the same as above but for functions
-	// i.e. declare then define.
-
-	// then we do all the functions
-	for _, n := range nodes {
-		switch n.Kind {
-		case front.FunctionDeclStatement:
-			f := b.buildFunc(n.FunctionDeclaration)
-			m.RegisterFunction(f)
-		}
-	}
+	b.introduceNamedTypes(nodes)
+	b.buildFunctions(nodes)
 }
 
 func build(trees [][]*front.ParseTreeNode) (*Module, []api.CompilerError) {

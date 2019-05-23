@@ -5,10 +5,6 @@ package middle
 	basically go through each function in a module
 	and will check the move semantics are correct
 	for owned memory/value bindings.
-
-	TODO:
-	move this into some kind of visitor
-	so that we can reuse this over the sema pass
 */
 
 import (
@@ -17,9 +13,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/krug-lang/caasper/api"
 	"github.com/krug-lang/caasper/ir"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type lifetime struct {

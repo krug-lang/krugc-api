@@ -1,6 +1,8 @@
 package ir
 
 import (
+	"strings"
+
 	"github.com/krug-lang/caasper/front"
 )
 
@@ -22,35 +24,50 @@ const (
 	JumpInstr            = "jumpInstr"
 	LabelInstr           = "labelInstr"
 	DeferInstr           = "deferInstr"
+	TypeAliasInstr       = "typeAliasInstr"
 )
 
 type Instruction struct {
-	Kind                InstructionKind
-	Block               *Block
-	Assign              *Assign
-	Local               *Local
-	Alloca              *Alloca
-	Next                *Next
-	Break               *Break
-	Return              *Return
-	Loop                *Loop
-	Defer               *Defer
-	Label               *Label
-	Jump                *Jump
-	WhileLoop           *WhileLoop
-	ElseIfStatement     *ElseIfStatement
-	IfStatement         *IfStatement
-	ExpressionStatement *Value
+	Kind                InstructionKind  `json:"kind,omitempty"`
+	Block               *Block           `json:"block,omitempty"`
+	Assign              *Assign          `json:"assign,omitempty"`
+	Local               *Local           `json:"local,omitempty"`
+	Alloca              *Alloca          `json:"alloca,omitempty"`
+	Next                *Next            `json:"next,omitempty"`
+	Break               *Break           `json:"break,omitempty"`
+	Return              *Return          `json:"return,omitempty"`
+	Loop                *Loop            `json:"loop,omitempty"`
+	Defer               *Defer           `json:"defer,omitempty"`
+	Label               *Label           `json:"label,omitempty"`
+	Jump                *Jump            `json:"jump,omitempty"`
+	WhileLoop           *WhileLoop       `json:"whileLoop,omitempty"`
+	ElseIfStatement     *ElseIfStatement `json:"elseIfStat,omitempty"`
+	IfStatement         *IfStatement     `json:"ifStat,omitempty"`
+	ExpressionStatement *Value           `json:"exprStat,omitempty"`
+	TypeAliasStatement  *TypeAlias       `json:"typeAliasStat,omitempty"`
+}
+
+// TYPE ALIAS
+
+// TypeAlias ...
+// "type" iden "=" type ";"
+type TypeAlias struct {
+	Name front.Token
+	Type *Type
+}
+
+func NewTypeAlias(name front.Token, typ *Type) *TypeAlias {
+	return &TypeAlias{name, typ}
 }
 
 // BLOCK
 
 type Block struct {
-	ID         uint64
-	DeferStack []*Defer
-	Instr      []*Instruction
-	Stab       *SymbolTable
-	Return     *Instruction
+	ID         uint64         `json:"id,omitempty"`
+	DeferStack []*Defer       `json:"deferStack,omitempty"`
+	Instr      []*Instruction `json:"instr,omitempty"`
+	Stab       *SymbolTable   `json:"stab,omitempty"`
+	Return     *Instruction   `json:"return,omitempty"`
 }
 
 func (b *Block) PushDefer(def *Defer) {
@@ -65,7 +82,6 @@ func (b *Block) AddInstr(instr *Instruction) {
 	b.Instr = append(b.Instr, instr)
 }
 
-// TODO fixme?
 var blockIota uint64
 
 func NewBlock() *Block {
@@ -131,6 +147,14 @@ type Local struct {
 	Val     *Value
 }
 
+// IsPublic will return the visiblity of the
+// Local. If the first character of the name is
+// uppercase, then the local is public
+func (l *Local) IsPublic() bool {
+	first := string(l.Name.Value[0])
+	return strings.Compare(first, strings.ToUpper(first)) == 0
+}
+
 func (l *Local) SetValue(v *Value) {
 	l.Val = v
 }
@@ -151,6 +175,14 @@ type Alloca struct {
 	Mutable bool
 	Owned   bool
 	Val     *Value
+}
+
+// IsPublic will return the visiblity of the
+// Alloca. If the first character of the name is
+// uppercase, then the alloca is public
+func (a *Alloca) IsPublic() bool {
+	first := string(a.Name.Value[0])
+	return strings.Compare(first, strings.ToUpper(first)) == 0
 }
 
 func (a *Alloca) SetValue(v *Value) {
@@ -217,10 +249,10 @@ func NewElseIfStatement(cond *Value, body *Block) *ElseIfStatement {
 // IF STATEMENT
 
 type IfStatement struct {
-	Cond   *Value
-	True   *Block
-	ElseIf []*ElseIfStatement
-	Else   *Block
+	Cond   *Value             `json:"cond"`
+	True   *Block             `json:"trueBlock"`
+	ElseIf []*ElseIfStatement `json:"elseIf,omitempty"`
+	Else   *Block             `json:"else,omitempty"`
 }
 
 func NewIfStatement(cond *Value, t *Block, elses []*ElseIfStatement, f *Block) *IfStatement {

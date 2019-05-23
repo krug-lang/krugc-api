@@ -37,7 +37,7 @@ func (p *parser) expect(val string) (tok Token) {
 		return BadToken
 	}
 
-	p.error(api.NewUnimplementedError("End of input on expect: " + val))
+	p.error(api.NewUnimplementedError("parser", "End of input on expect: "+val))
 	return BadToken
 }
 
@@ -48,7 +48,7 @@ func (p *parser) expectKind(kind TokenType) (tok Token) {
 		return tok
 	}
 
-	p.error(api.NewUnexpectedToken(string(kind), p.next().Value, start, p.pos))
+	p.error(api.NewUnexpectedToken(p.next().Value, string(kind), start, p.pos))
 	return BadToken
 }
 

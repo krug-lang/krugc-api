@@ -196,16 +196,15 @@ func lexSingleLine(l *lexer) stateFn {
 
 	for {
 		if l.peek() == '\n' || l.peek() == eof {
+			// consume and ignore the newline at the
+			// end of the comment.
+			l.consume()
+
 			if !l.skipComments {
 				l.emit(SingleLineComment)
 			} else {
 				l.ignore()
 			}
-
-			// consume and ignore the newline at the
-			// end of the comment.
-			l.consume()
-			l.ignore()
 
 			return lexStart
 		}

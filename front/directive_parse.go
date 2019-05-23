@@ -65,12 +65,10 @@ func parseInclude(p *directiveParser) *Directive {
 	}
 
 	if len(args) != 1 {
-		// TODO error: not enough arguments supplied.
 		p.error(api.NewDirectiveParseError("not enough arguments supplied", start, p.pos))
 		return nil
 	}
 
-	// TODO improve the type checking for directive args.
 	if args[0].kind != stringValue {
 		p.error(api.NewDirectiveParseError("include should have on parameter of type 'string'", start, p.pos))
 		return nil

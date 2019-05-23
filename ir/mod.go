@@ -6,25 +6,34 @@ import (
 
 // MODULE
 
+// Module represents an individual krug file. contains functions,
+// structures, impls, and the global statements (as a block).
 type Module struct {
-	Name           string                `json:"name"`
-	Structures     map[string]*Structure `json:"structures"`
-	StructureOrder []front.Token         `json:"structure_order"`
-	Functions      map[string]*Function  `json:"functions"`
-	FunctionOrder  []front.Token         `json:"function_order"`
-	Impls          map[string]*Impl      `json:"impls"`
-	ImplsOrder     []front.Token         `json:"impls_order"`
+	Name           string                `json:"name,omitempty"`
+	Structures     map[string]*Structure `json:"structures,omitempty"`
+	StructureOrder []front.Token         `json:"structure_order,omitempty"`
+	Functions      map[string]*Function  `json:"functions,omitempty"`
+	FunctionOrder  []front.Token         `json:"function_order,omitempty"`
+	Impls          map[string]*Impl      `json:"impls,omitempty"`
+	ImplsOrder     []front.Token         `json:"impls_order,omitempty"`
+	Global         *Block                `json:"global,omitempty"`
 }
 
+// NewModule creates a new module with the given name
 func NewModule(name string) *Module {
 	return &Module{
 		name,
+
 		map[string]*Structure{},
 		[]front.Token{},
+
 		map[string]*Function{},
 		[]front.Token{},
+
 		map[string]*Impl{},
 		[]front.Token{},
+
+		NewBlock(),
 	}
 }
 

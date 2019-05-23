@@ -25,7 +25,6 @@ func NewScopeDict() *ScopeDict {
 // the scope map is purely for the symbols in
 // data, it does not contain any type information.
 type ScopeMap struct {
-	// TODO
 	Functions  map[string]*SymbolTable
 	Structures map[string]*SymbolTable
 }

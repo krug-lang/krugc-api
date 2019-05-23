@@ -1,7 +1,11 @@
 package front
 
+import "fmt"
+
+// StatementType ...
 type StatementType string
 
+// ...
 const (
 	LetStatement        StatementType = "letStat"
 	MutableStatement                  = "mutStat"
@@ -20,77 +24,96 @@ const (
 	LabelStatement = "labelNode"
 	JumpStatement  = "jumpNode"
 
-	NamedTypeDeclStatement = "namedTypeDecl"
-	StructureDeclStatement = "structDecl"
+	TypeAliasStatement     = "typeAliasDecl"
 	TraitDeclStatement     = "traitDecl"
 	ImplDeclStatement      = "implDecl"
 	FunctionProtoStatement = "funcProtoDecl"
 	FunctionDeclStatement  = "funcDecl"
+	StructureDeclStatement = "structDecl"
 )
 
+// NamedType ...
 type NamedType struct {
-	Mutable bool      `json:"mutable"`
-	Name    Token     `json:"name"`
-	Owned   bool      `json:"owned"`
-	Type    *TypeNode `json:"type"`
+	Mutable bool            `json:"mutable"`
+	Name    Token           `json:"name"`
+	Owned   bool            `json:"owned"`
+	Type    *ExpressionNode `json:"type"`
 }
 
+// BlockNode ...
 type BlockNode struct {
 	// hm
 	Statements []*ParseTreeNode `json:"statements"`
 }
 
-//
+// ElseIfNode ...
 type ElseIfNode struct {
 	Cond  *ExpressionNode `json:"cond"`
 	Block *BlockNode      `json:"block"`
 }
 
+// FunctionPrototypeDeclaration ...
 // "func" iden "(" args ")"
 type FunctionPrototypeDeclaration struct {
-	Name      Token        `json:"name"`
-	Arguments []*NamedType `json:"arguments"`
-
-	// TODO should this be set to anything by
-	// default, e.g. we can inject a "void"
-	// into here?
-	ReturnType *TypeNode `json:"return_type"`
+	Name       Token           `json:"name"`
+	Arguments  []*NamedType    `json:"arguments"`
+	ReturnType *ExpressionNode `json:"return_type"`
 }
 
+// FunctionDeclaration ...
 // [ FunctionPrototypeDeclaration ] "{" { Stat ";" } "}"
 type FunctionDeclaration struct {
 	*FunctionPrototypeDeclaration
 	Body *BlockNode `json:"body"`
 }
 
+// TypeAliasNode ...
+// type name = type;
+type TypeAliasNode struct {
+	Name Token           `json:"name"`
+	Type *ExpressionNode `json:"type"`
+}
+
+func (t *TypeAliasNode) String() string {
+	return fmt.Sprintf("type %s = %s", t.Name.Value, t.Type.Kind)
+}
+
+// LetStatementNode ...
 type LetStatementNode struct {
 	Name  Token           `json:"name"`
 	Owned bool            `json:"owned"`
-	Type  *TypeNode       `json:"type"`
+	Type  *ExpressionNode `json:"type"`
 	Value *ExpressionNode `json:"value"`
 }
+
+// MutableStatementNode ...
 type MutableStatementNode struct {
 	Name  Token           `json:"name"`
 	Owned bool            `json:"owned"`
-	Type  *TypeNode       `json:"type"`
+	Type  *ExpressionNode `json:"type"`
 	Value *ExpressionNode `json:"value"`
 }
+
+// ReturnStatementNode ...
 type ReturnStatementNode struct {
 	Value *ExpressionNode `json:"value"`
 }
 
 // CONSTR
 
+// WhileLoopNode ...
 type WhileLoopNode struct {
 	Cond  *ExpressionNode `json:"cond"`
 	Post  *ExpressionNode `json:"post,omitempty"`
 	Block *BlockNode      `json:"block"`
 }
 
+// LoopNode ...
 type LoopNode struct {
 	Block *BlockNode `json:"block"`
 }
 
+// IfNode ...
 type IfNode struct {
 	Cond    *ExpressionNode `json:"cond"`
 	Block   *BlockNode      `json:"block"`
@@ -98,6 +121,7 @@ type IfNode struct {
 	Else    *BlockNode      `json:"else"`
 }
 
+// DeferNode ...
 type DeferNode struct {
 	Block     *BlockNode     `json:"block"`
 	Statement *ParseTreeNode `json:"statement"`
@@ -105,28 +129,31 @@ type DeferNode struct {
 
 // DECL
 
-// "struct" iden { ... }
+// StructureDeclaration ...
+// see StructureTypeNode
 type StructureDeclaration struct {
-	Name   Token        `json:"name"`
-	Fields []*NamedType `json:"fields"`
+	Structure *StructureTypeNode
 }
 
+// TraitDeclaration ...
 // "trait" iden { ... }
 type TraitDeclaration struct {
 	Name    Token                           `json:"name"`
 	Members []*FunctionPrototypeDeclaration `json:"members"`
 }
 
-// todo
+// ImplDeclaration ...
 type ImplDeclaration struct {
 	Name      Token                  `json:"name"`
 	Functions []*FunctionDeclaration `json:"functions"`
 }
 
+// LabelNode ...
 type LabelNode struct {
 	LabelName Token `json:"label_name"`
 }
 
+// JumpNode ...
 type JumpNode struct {
 	Location Token `json:"location"`
 }
@@ -142,6 +169,7 @@ type JumpNode struct {
 type ParseTreeNode struct {
 	Kind StatementType `json:"kind"`
 
+	TypeAliasNode           *TypeAliasNode        `json:"namedType,omitempty"`
 	LetStatementNode        *LetStatementNode     `json:"letStatement,omitempty"`
 	MutableStatementNode    *MutableStatementNode `json:"mutStatement,omitempty"`
 	ReturnStatementNode     *ReturnStatementNode  `json:"retStatement,omitempty"`
@@ -162,11 +190,11 @@ type ParseTreeNode struct {
 
 	// DECL
 
-	StructureDeclaration *StructureDeclaration `json:"structureDecl,omitempty"`
-	TraitDeclaration     *TraitDeclaration     `json:"traitDecl,omitempty"`
-	ImplDeclaration      *ImplDeclaration      `json:"implDecl,omitempty"`
+	TraitDeclaration *TraitDeclaration `json:"traitDecl,omitempty"`
+	ImplDeclaration  *ImplDeclaration  `json:"implDecl,omitempty"`
 
 	NamedType                    *NamedType                    `json:"namedTypeDecl,omitempty"`
 	FunctionPrototypeDeclaration *FunctionPrototypeDeclaration `json:"funcProtoDecl,omitempty"`
 	FunctionDeclaration          *FunctionDeclaration          `json:"funcDecl,omitempty"`
+	StructureDeclaration         *StructureDeclaration         `json:"structDecl,omitempty"`
 }

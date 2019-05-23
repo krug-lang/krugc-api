@@ -63,8 +63,6 @@ func (b *builder) pushBlock(id int) *ir.SymbolTable {
 	return b.pushStab(fmt.Sprintf("%d", id))
 }
 
-// TODO generate some kind of key that maps an ir.Block
-// to the symbol table.
 func (b *builder) visitBlock(i *ir.Block) *ir.SymbolTable {
 	i.Stab = b.pushBlock(b.blockCount)
 	b.blockCount++
@@ -97,9 +95,6 @@ func (b *builder) visitLoop(loop *ir.Loop) {
 
 func (b *builder) visitInstr(i *ir.Instruction) {
 	switch i.Kind {
-
-	// TODO(FElix):
-	// store owned in the alloc, and local instr
 
 	case ir.AllocaInstr:
 		instr := i.Alloca

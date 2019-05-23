@@ -15,7 +15,9 @@ const (
 	AssignStatement                      = "assignExpr"
 	ConstantExpression                   = "constExpr"
 	LambdaExpression                     = "lambdaExpr"
+	ListExpression                       = "listExpr"
 	InitializerExpression                = "initExpr"
+	TypeExpression                       = "typeExpr"
 )
 
 type LambdaExpressionNode struct {
@@ -41,6 +43,9 @@ type BinaryExpressionNode struct {
 	LHand    *ExpressionNode
 	Operator string
 	RHand    *ExpressionNode
+}
+type ExprList struct {
+	Values []*ExpressionNode
 }
 type GroupingNode struct {
 	Value *ExpressionNode
@@ -89,6 +94,7 @@ type ExpressionNode struct {
 	LiteralExpressionNode     *LiteralExpressionNode     `json:"literalExpr,omitempty"`
 	UnaryExpressionNode       *UnaryExpressionNode       `json:"unaryExpr,omitempty"`
 	BinaryExpressionNode      *BinaryExpressionNode      `json:"binaryExpr,omitempty"`
+	ExprList                  *ExprList                  `json:"exprList,omitempty"`
 	GroupingNode              *GroupingNode              `json:"groupingExpr,omitempty"`
 	IndexExpressionNode       *IndexExpressionNode       `json:"indexExpr,omitempty"`
 	CallExpressionNode        *CallExpressionNode        `json:"callExpr,omitempty"`
@@ -96,4 +102,5 @@ type ExpressionNode struct {
 	ConstantNode              *ConstantNode              `json:"constExpr,omitempty"`
 	AssignStatementNode       *AssignStatementNode       `json:"assignExpr,omitempty"`
 	InitializerExpressionNode *InitializerExpressionNode `json:"initExpr,omitempty"`
+	TypeExpressionNode        *TypeNode                  `json:"typeExpr,omitEmpty"`
 }

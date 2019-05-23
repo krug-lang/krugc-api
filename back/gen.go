@@ -217,12 +217,9 @@ func (e *emitter) emitTypedName(mutable bool, t *ir.Type, name string) string {
 	return fmt.Sprintf("%s%s", modifier, result)
 }
 
-// FIXME
 func (e *emitter) buildAlloca(a *ir.Alloca) {
 	typedName := e.emitTypedName(true, a.Type, a.Name.Value)
 	e.writetln(e.indentLevel, "%s = malloc(sizeof(*%s));", typedName, a.Name.Value)
-
-	// TODO init list.
 }
 
 func (e *emitter) buildAllocBuiltin(b *ir.Builtin) string {
@@ -238,8 +235,6 @@ func (e *emitter) buildAllocBuiltin(b *ir.Builtin) string {
 
 func (e *emitter) buildBuiltin(b *ir.Builtin) string {
 	iden := b.Iden.Name.Value
-	// TODO the iden here is wrong...
-
 	switch b.Name {
 	case "sizeof":
 		return fmt.Sprintf("sizeof(%s)", iden)
@@ -600,7 +595,6 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 			if idx != 0 {
 				argList += ", "
 			}
-			// TODO mutability of parameters.
 			argList += e.emitLocal(loc)
 			idx++
 		}
@@ -622,8 +616,6 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 	e.buildBlock(fn.Body)
 }
 
-// TODO if this arg list gets any bigger it should become
-// some kind of configuration struct.
 func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerError) {
 	fmt.Println(mod)
 
@@ -639,13 +631,6 @@ func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 		"stdint.h",
 		"stdlib.h",
 		"string.h",
-
-		// TODO includes should be injected
-		// from the module directives.
-
-		// delete! this is for the frontend.
-		"SDL2/SDL.h",
-		"SDL2/SDL_image.h",
 	}
 	for _, h := range headers {
 		e.writeln(`#include <%s>`, h)

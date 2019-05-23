@@ -30,6 +30,15 @@ type BuildScopeMapRequest struct {
 	IRModule string `json:"ir_module"`
 }
 
+// unused func
+
+// UnusedFunctionRequest is a request that will check
+// for all unused functions
+type UnusedFunctionRequest struct {
+	IRModule string `json:"ir_module"`
+	ScopeMap string `json:"scope_map"`
+}
+
 // borrowcheck
 
 type BorrowCheckRequest struct {

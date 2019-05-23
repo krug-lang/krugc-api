@@ -23,15 +23,15 @@ const (
 type Type struct {
 	Kind TypeOf `json:"kind"`
 
-	VoidType     *VoidType      `json:"voidType"`
-	FloatingType *FloatingType  `json:"floatingType"`
-	IntegerType  *IntegerType   `json:"integerType"`
-	ArrayType    *ArrayType     `json:"arrayType"`
-	Function     *Function      `json:"function"`
-	Tuple        *TupleType     `json:"tuple"`
-	Structure    *Structure     `json:"structure"`
-	Pointer      *PointerType   `json:"pointer"`
-	Reference    *ReferenceType `json:"reference"`
+	VoidType     *VoidType      `json:"voidType,omitempty"`
+	FloatingType *FloatingType  `json:"floatingType,omitempty"`
+	IntegerType  *IntegerType   `json:"integerType,omitempty"`
+	ArrayType    *ArrayType     `json:"arrayType,omitempty"`
+	Function     *Function      `json:"function,omitempty"`
+	Tuple        *TupleType     `json:"tuple,omitempty"`
+	Structure    *Structure     `json:"structure,omitempty"`
+	Pointer      *PointerType   `json:"pointer,omitempty"`
+	Reference    *ReferenceType `json:"reference,omitempty"`
 }
 
 func (t *Type) String() string {
@@ -237,7 +237,7 @@ type Structure struct {
 	Name    front.Token          `json:"name"`
 	Stab    *SymbolTable         `json:"stab,omitempty"`
 	Fields  *TypeDict            `json:"fields"`
-	Methods map[string]*Function `json:"methods"`
+	Methods map[string]*Function `json:"methods,omitempty"`
 }
 
 func (s *Structure) RegisterMethod(f *Function) {

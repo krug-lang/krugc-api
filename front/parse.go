@@ -11,27 +11,35 @@ import (
 
 // keywords
 const (
-	fn    string = "fn"
-	let          = "let"
-	mut          = "mut"
-	brk          = "break"
-	ret          = "return"
-	next         = "next"
-	trait        = "trait"
-	struc        = "struct"
-	impl         = "impl"
+	fn       string = "fn"
+	let             = "let"
+	typ             = "type"
+	mut             = "mut"
+	brk             = "break"
+	ret             = "return"
+	next            = "next"
+	trait           = "trait"
+	struc           = "struct"
+	impl            = "impl"
+	comptime        = "comptime"
+	loop            = "loop"
+	deferr          = "defer"
+	while           = "while"
+	iff             = "if"
 )
 
 type astParser struct {
 	parser
 }
 
+// BadToken represents a bad token that
+// is unsupported in the language
 var BadToken Token
 
 func (p *astParser) parsePointerType() *TypeNode {
 	start := p.pos
 	p.expect("*")
-	base := p.parseType()
+	base := p.parseTypeExpression()
 	if base == nil {
 		p.error(api.NewParseError("type after pointer", start, p.pos))
 		return nil
@@ -49,7 +57,7 @@ func (p *astParser) parseArrayType() *TypeNode {
 	start := p.pos
 
 	p.expect("[")
-	base := p.parseType()
+	base := p.parseTypeExpression()
 	if base == nil {
 		p.error(api.NewParseError("array type", start, p.pos))
 	}
@@ -83,7 +91,7 @@ func (p *astParser) parseUnresolvedType() *TypeNode {
 
 func (p *astParser) parseTupleType() *TypeNode {
 	p.expect("(")
-	var types []*TypeNode
+	var types []*ExpressionNode
 	for p.hasNext() {
 		if p.next().Matches(",") {
 			p.consume()
@@ -93,10 +101,8 @@ func (p *astParser) parseTupleType() *TypeNode {
 			break
 		}
 
-		if typ := p.parseType(); typ != nil {
+		if typ := p.parseTypeExpression(); typ != nil {
 			types = append(types, typ)
-		} else {
-			// TODO. handle me!
 		}
 	}
 	p.expect(")")
@@ -109,28 +115,39 @@ func (p *astParser) parseTupleType() *TypeNode {
 	}
 }
 
-func (p *astParser) parseType() *TypeNode {
+// parseTypeExpression is an expression, though it is constrained
+// to be either a function, or a type, e.g. a pointer, or an array.
+func (p *astParser) parseTypeExpression() *ExpressionNode {
 	start := p.pos
-	switch curr := p.next(); {
+	curr := p.next()
+
+	res := &ExpressionNode{
+		Kind: TypeExpression,
+	}
+
+	switch {
 	case curr.Matches("*"):
-		return p.parsePointerType()
+		res.TypeExpressionNode = p.parsePointerType()
 	case curr.Matches("["):
-		return p.parseArrayType()
+		res.TypeExpressionNode = p.parseArrayType()
 	case curr.Matches("("):
-		return p.parseTupleType()
+		res.TypeExpressionNode = p.parseTupleType()
+	case curr.Matches(struc):
+		res.TypeExpressionNode = p.parseStructureType()
 	case curr.Kind == Identifier:
-		return p.parseUnresolvedType()
+		res.TypeExpressionNode = p.parseUnresolvedType()
 	default:
-		p.error(api.NewUnimplementedError("type", start, p.pos))
+		p.error(api.NewUnimplementedError("parseTypeExpression", "type", start, p.pos))
 		return nil
 	}
+
+	return res
 }
 
-func (p *astParser) parseStructureDeclaration() *StructureDeclaration {
+func (p *astParser) parseStructureType() *TypeNode {
 	start := p.pos
 
-	p.expect("struct")
-	name := p.consume()
+	fst := p.expect("struct")
 
 	fields := []*NamedType{}
 
@@ -142,7 +159,7 @@ func (p *astParser) parseStructureDeclaration() *StructureDeclaration {
 
 		name := p.expectKind(Identifier)
 
-		typ := p.parseType()
+		typ := p.parseTypeExpression()
 		if typ == nil {
 			p.error(api.NewParseError("type", start, p.pos))
 		}
@@ -160,9 +177,12 @@ func (p *astParser) parseStructureDeclaration() *StructureDeclaration {
 	}
 	p.expect("}")
 
-	return &StructureDeclaration{
-		Name:   name,
-		Fields: fields,
+	return &TypeNode{
+		Kind: StructureType,
+		StructureTypeNode: &StructureTypeNode{
+			Name:   fst,
+			Fields: fields,
+		},
 	}
 }
 
@@ -198,7 +218,7 @@ func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclar
 		}
 
 		name := p.expectKind(Identifier)
-		typ := p.parseType()
+		typ := p.parseExpression()
 		if typ == nil {
 			p.error(api.NewParseError("type after pointer", start, p.pos))
 		}
@@ -207,14 +227,14 @@ func (p *astParser) parseFunctionPrototypeDeclaration() *FunctionPrototypeDeclar
 	}
 	p.expect(")")
 
-	var typ *TypeNode
+	var typ *ExpressionNode
 
 	// { 	FuncDecl body
 	// ; 	type in a let statement, e.g.
 	// , 	member in a structure
 	// if we dont have any of these, parse a type!
 	if !p.next().Matches("{", ";", ",") {
-		typ = p.parseType()
+		typ = p.parseTypeExpression()
 	}
 
 	return &FunctionPrototypeDeclaration{
@@ -240,9 +260,9 @@ func (p *astParser) parseMut() *ParseTreeNode {
 
 	name := p.expectKind(Identifier)
 
-	var typ *TypeNode
+	var typ *ExpressionNode
 	if !p.next().Matches("=") {
-		typ = p.parseType()
+		typ = p.parseTypeExpression()
 		if typ == nil {
 			p.error(api.NewParseError("type after assignment", start, p.pos))
 		}
@@ -287,9 +307,9 @@ func (p *astParser) parseLet() *ParseTreeNode {
 
 	name := p.expectKind(Identifier)
 
-	var typ *TypeNode
+	var typ *ExpressionNode
 	if !p.next().Matches("=") {
-		typ = p.parseType()
+		typ = p.parseTypeExpression()
 		if typ == nil {
 			p.error(api.NewParseError("type or assignment", start, p.pos))
 		}
@@ -352,12 +372,36 @@ func (p *astParser) parseBreak() *ParseTreeNode {
 	}
 }
 
+func (p *astParser) parseTypeAlias() *ParseTreeNode {
+	start := p.pos
+
+	p.expect(typ)
+
+	name := p.expectKind(Identifier)
+
+	p.expect("=")
+	typ := p.parseTypeExpression()
+	if typ == nil {
+		p.error(api.NewParseError("type or assignment", start, p.pos))
+	}
+
+	return &ParseTreeNode{
+		Kind: TypeAliasStatement,
+		TypeAliasNode: &TypeAliasNode{
+			Name: name,
+			Type: typ,
+		},
+	}
+}
+
 func (p *astParser) parseSemicolonStatement() *ParseTreeNode {
 	switch curr := p.next(); {
 	case curr.Matches(mut):
 		return p.parseMut()
 	case curr.Matches(let):
 		return p.parseLet()
+	case curr.Matches(typ):
+		return p.parseTypeAlias()
 	case curr.Matches(ret):
 		return p.parseReturn()
 	case curr.Matches("$"):
@@ -556,10 +600,10 @@ func (p *astParser) parseDefer() *ParseTreeNode {
 }
 
 func (p *astParser) parseLoop() *ParseTreeNode {
-	if !p.next().Matches("loop") {
+	if !p.next().Matches(loop) {
 		return nil
 	}
-	p.expect("loop")
+	p.expect(loop)
 	if block := p.parseStatBlock(); block != nil {
 		return &ParseTreeNode{
 			Kind: LoopStatement,
@@ -573,13 +617,13 @@ func (p *astParser) parseLoop() *ParseTreeNode {
 
 func (p *astParser) parseStatement() *ParseTreeNode {
 	switch curr := p.next(); {
-	case curr.Matches("if"):
+	case curr.Matches(iff):
 		return p.parseIfElseChain()
-	case curr.Matches("loop"):
+	case curr.Matches(loop):
 		return p.parseLoop()
-	case curr.Matches("while"):
+	case curr.Matches(while):
 		return p.parseWhileLoop()
-	case curr.Matches("defer"):
+	case curr.Matches(deferr):
 		return p.parseDefer()
 	case curr.Matches("{"):
 		return &ParseTreeNode{
@@ -675,6 +719,28 @@ func (p *astParser) parseUnaryExpr() *ExpressionNode {
 	}
 }
 
+func (p *astParser) parseGroupedList(fst *ExpressionNode) *ExpressionNode {
+	list := []*ExpressionNode{fst}
+
+	for p.hasNext() && p.next().Matches(",") {
+		p.expect(",")
+		val := p.parseExpression()
+		if val == nil {
+			panic("todo")
+		}
+		list = append(list, val)
+	}
+
+	p.expect(")")
+
+	return &ExpressionNode{
+		Kind: ListExpression,
+		ExprList: &ExprList{
+			list,
+		},
+	}
+}
+
 func (p *astParser) parseOperand() *ExpressionNode {
 	if !p.hasNext() {
 		return nil
@@ -683,9 +749,16 @@ func (p *astParser) parseOperand() *ExpressionNode {
 	start := p.pos
 	curr := p.next()
 
+	// group or grouped list
+	// i.e. (1 + 2)
+	// or (1, 2, 3, 4)
 	if curr.Matches("(") {
 		p.expect("(")
 		expr := p.parseExpression()
+		if p.next().Matches(",") {
+			return p.parseGroupedList(expr)
+		}
+
 		p.expect(")")
 		return &ExpressionNode{
 			Kind:         Grouping,
@@ -752,7 +825,7 @@ func (p *astParser) parseOperand() *ExpressionNode {
 		return nil
 
 	default:
-		p.error(api.NewUnimplementedError(string(curr.Kind), start, p.pos))
+		p.error(api.NewUnimplementedError("parse", string(curr.Kind), start, p.pos))
 		return nil
 	}
 }
@@ -785,8 +858,6 @@ func (p *astParser) parseBuiltin() *ExpressionNode {
 			arg := p.parseExpression()
 			if arg != nil {
 				args = append(args, arg)
-			} else {
-				// TODO handle this error.
 			}
 		}
 		p.expect(")")
@@ -859,44 +930,8 @@ func (p *astParser) parseLambda() *ExpressionNode {
 }
 
 func (p *astParser) parseInitializer() *ExpressionNode {
-	curr := p.consume()
-
-	var initKind InitializerKind
-	switch curr.Value {
-	case ":":
-		initKind = InitStructure
-	case "(":
-		initKind = InitTuple
-	case "[":
-		initKind = InitArray
-	default:
-		panic(fmt.Sprintf("bad initializer type %s", curr))
-	}
-
-	var lhand Token
-
-	// check if () or []
-	if curr.Matches("(", "[") {
-		if !p.hasNext() {
-			p.rewind()
-			return nil
-		}
-
-		opp := "]"
-		if curr.Matches("(") {
-			opp = ")"
-		}
-
-		if !p.next().Matches(opp) {
-			p.rewind()
-			return nil
-		}
-
-		// consume the closing paren
-		p.expect(opp)
-	} else if curr.Matches(":") {
-		lhand = p.expectKind(Identifier)
-	}
+	p.expect(":")
+	lhand := p.expectKind(Identifier)
 
 	p.expect("{")
 	var els []*ExpressionNode
@@ -919,7 +954,7 @@ func (p *astParser) parseInitializer() *ExpressionNode {
 	return &ExpressionNode{
 		Kind: InitializerExpression,
 		InitializerExpressionNode: &InitializerExpressionNode{
-			Kind:   initKind,
+			Kind:   InitStructure,
 			LHand:  lhand,
 			Values: els,
 		},
@@ -931,7 +966,15 @@ func (p *astParser) parsePrimaryExpr() *ExpressionNode {
 		return nil
 	}
 
-	if p.next().Matches(":", "(", "[") {
+	// hm.
+	if p.next().Matches(struc, "*", "[", "(") {
+		typ := p.parseTypeExpression()
+		return typ
+	}
+
+	// ambiguity with tuple types and their initializers?
+	// initializer syntax should change
+	if p.next().Matches(":") {
 		init := p.parseInitializer()
 		if init != nil {
 			return init
@@ -1160,9 +1203,6 @@ func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 		p.skipDirective()
 		return nil, true
 
-	case curr.Matches(struc):
-		res.StructureDeclaration = p.parseStructureDeclaration()
-		res.Kind = StructureDeclStatement
 	case curr.Matches(trait):
 		res.TraitDeclaration = p.parseTraitDeclaration()
 		res.Kind = TraitDeclStatement
@@ -1173,6 +1213,10 @@ func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 		res.FunctionDeclaration = p.parseFunctionDeclaration()
 		res.Kind = FunctionDeclStatement
 
+	case curr.Matches(typ):
+		res = p.parseTypeAlias()
+		p.expect(";")
+
 	case curr.Matches(mut):
 		res = p.parseMut()
 		p.expect(";")
@@ -1182,8 +1226,11 @@ func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 		p.expect(";")
 
 	default:
-		p.error(api.NewUnimplementedError(startingTok.Value, start, p.pos))
-		return nil, false
+		res = p.parseExpressionStatement()
+		if res == nil {
+			p.error(api.NewUnimplementedError("parse", startingTok.Value, start, p.pos))
+		}
+		p.expect(";")
 	}
 
 	return res, true
@@ -1191,6 +1238,8 @@ func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 
 func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &astParser{parser{stream, 0, []api.CompilerError{}}}
+	fmt.Println("parsing ...")
+
 	nodes := []*ParseTreeNode{}
 	for p.hasNext() {
 		node, ok := p.parseNode()

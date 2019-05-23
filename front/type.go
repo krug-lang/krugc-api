@@ -1,34 +1,49 @@
 package front
 
-type TypeNodeType int
+// TypeNodeType ...
+type TypeNodeType string
 
+// ...
 const (
-	UnresolvedType TypeNodeType = iota
-	PointerType
-	ArrayType
-	TupleType
+	UnresolvedType TypeNodeType = "unresolvedType"
+	PointerType                 = "pointerType"
+	ArrayType                   = "arrayType"
+	TupleType                   = "tupleType"
+	StructureType               = "structType"
 )
 
-// SomeStructureName
+// UnresolvedTypeNode ...
 type UnresolvedTypeNode struct {
-	Name string
+	Name     string
+	Resolved bool
 }
 
-// *TypeNode
+// PointerTypeNode ...
+// *Type
 type PointerTypeNode struct {
-	Base *TypeNode
+	Base *ExpressionNode
 }
 
+// TupleTypeNode ...
 type TupleTypeNode struct {
-	Types []*TypeNode
+	Types []*ExpressionNode
 }
 
-// [TypeNode]
+// ArrayTypeNode ...
+// [TypeNode; expr]
 type ArrayTypeNode struct {
-	Base *TypeNode
+	Base *ExpressionNode
 	Size *ExpressionNode
 }
 
+// StructureTypeNode ...
+// "struct" iden { ... }
+type StructureTypeNode struct {
+	Name   Token        `json:"name"`
+	Fields []*NamedType `json:"fields"`
+}
+
+// TypeNode ...
 type TypeNode struct {
 	Kind TypeNodeType
 
@@ -36,4 +51,5 @@ type TypeNode struct {
 	UnresolvedTypeNode *UnresolvedTypeNode `json:"unresolvedType,omitempty"`
 	PointerTypeNode    *PointerTypeNode    `json:"pointerType,omitempty"`
 	ArrayTypeNode      *ArrayTypeNode      `json:"arrayType,omitempty"`
+	StructureTypeNode  *StructureTypeNode  `json:"structType,omitempty"`
 }
