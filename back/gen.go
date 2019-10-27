@@ -2,50 +2,13 @@ package back
 
 import (
 	"fmt"
-	"github.com/krug-lang/caasper/entity"
-	"net/http"
 	"strings"
 
 	"github.com/krug-lang/caasper/front"
 
-	jsoniter "github.com/json-iterator/go"
-
-	"github.com/gin-gonic/gin"
 	"github.com/krug-lang/caasper/api"
 	"github.com/krug-lang/caasper/ir"
 )
-
-func Gen(c *gin.Context) {
-	var codeGenReq entity.CodeGenerationRequest
-	if err := c.BindJSON(&codeGenReq); err != nil {
-		panic(err)
-	}
-
-	var irMod ir.Module
-	if err := jsoniter.Unmarshal([]byte(codeGenReq.IRModule), &irMod); err != nil {
-		panic(err)
-	}
-
-	// for now we just return the
-	// bytes for one big old c file.
-	monoFile, errors := codegen(&irMod, codeGenReq.TabSize, codeGenReq.Minify)
-
-	type generatedCode struct {
-		Code string `json:"code"`
-	}
-
-	genCode := generatedCode{monoFile}
-	genCodeResp, err := jsoniter.Marshal(&genCode)
-	if err != nil {
-		panic(err)
-	}
-
-	resp := entity.KrugResponse{
-		Data:   string(genCodeResp),
-		Errors: errors,
-	}
-	c.JSON(http.StatusOK, &resp)
-}
 
 type emitter struct {
 	decl   string
@@ -617,7 +580,7 @@ func (e *emitter) emitFunc(fn *ir.Function) {
 	e.buildBlock(fn.Body)
 }
 
-func codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerError) {
+func Codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerError) {
 	fmt.Println(mod)
 
 	e := &emitter{
