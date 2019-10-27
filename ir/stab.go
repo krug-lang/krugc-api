@@ -1,7 +1,6 @@
 package ir
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/krug-lang/caasper/front"
@@ -103,8 +102,7 @@ func (s *SymbolTable) Lookup(name string) (*SymbolValue, bool) {
 			return sym, ok
 		}
 	}
-
-	panic(fmt.Sprintf("coun't find symbol %s", name))
+	return nil, false
 }
 
 func NewSymbolTable(outer *SymbolTable) *SymbolTable {

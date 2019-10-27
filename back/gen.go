@@ -14,6 +14,7 @@ type emitter struct {
 	decl   string
 	source string
 	target *string
+	errors []api.CompilerError
 
 	// this is a state representing
 	// how many levels of indentation
@@ -25,6 +26,10 @@ type emitter struct {
 
 	// whether or not the output is minified.
 	minify bool
+}
+
+func (e *emitter) error(err api.CompilerError) {
+	e.errors = append(e.errors, err)
 }
 
 func (e *emitter) retarget(to *string) {
@@ -103,7 +108,8 @@ func (e *emitter) writeArray(typ *ir.ArrayType) string {
 
 func (e *emitter) writeType(typ *ir.Type) string {
 	if typ == nil {
-		panic("trying to write a nil type!")
+		e.error(api.NewUnimplementedError("compilation", "attempting to write a nil type"))
+		return "/*<nil-type>*/"
 	}
 
 	switch typ.Kind {
@@ -128,7 +134,8 @@ func (e *emitter) writeType(typ *ir.Type) string {
 		return e.writePointer(typ.Pointer)
 
 	default:
-		panic(fmt.Sprintf("unhandled type %s", typ.Kind))
+		e.error(api.NewUnimplementedError("codegen", fmt.Sprintf("unhandled type %s", typ.Kind)))
+		return "/*<nil-type>*/"
 	}
 
 }
@@ -161,6 +168,11 @@ func (e *emitter) emitLocal(loc *ir.Local) string {
 }
 
 func (e *emitter) emitTypedName(mutable bool, t *ir.Type, name string) string {
+	if t == nil {
+		e.error(api.NewUnimplementedError("compilation", "unhandled instr"))
+		return "/*<nil-type>*/"
+	}
+
 	genType := e.writeType(t)
 
 	// we have to move the array to the end of the
@@ -211,7 +223,8 @@ func (e *emitter) buildBuiltin(b *ir.Builtin) string {
 	case "ref":
 		return fmt.Sprintf("(/*ref*/%s)", iden)
 	default:
-		panic(fmt.Sprintf("unimplemented builtin %s", b.Name))
+		e.error(api.NewUnimplementedError("compilation", "unimplemented builtin"))
+		return "/*<nil-builtin>*/"
 	}
 }
 
@@ -224,7 +237,8 @@ func (e *emitter) writeInitExpr(i *ir.Init) string {
 	case front.InitArray:
 		return ""
 	}
-	panic(fmt.Sprintf("unimplemented int expr %s", i.Kind))
+	e.error(api.NewUnimplementedError("compilation", "unimplemented int-expr"))
+	return "/*<nil-int-expr>*/"
 }
 
 func (e *emitter) buildUnary(u *ir.UnaryExpression) string {
@@ -327,7 +341,8 @@ func (e *emitter) buildExpr(l *ir.Value) string {
 		return e.writePath(l.Path)
 
 	default:
-		panic(fmt.Sprintf("unimplemented expr %s", l.Kind))
+		e.error(api.NewUnimplementedError("compilation", "unimplemented expr"))
+		return "/*<nil-expr>*/"
 	}
 }
 
@@ -491,7 +506,7 @@ func (e *emitter) buildInstr(i *ir.Instruction) {
 		e.writetln(e.indentLevel-1, "%s:", i.Label.Name.Value)
 
 	default:
-		panic(fmt.Sprintf("unhandled instr %s", i.Kind))
+		e.error(api.NewUnimplementedError("compilation", "unhandled instr"))
 	}
 
 }
@@ -586,6 +601,7 @@ func Codegen(mod *ir.Module, tabSize int, minify bool) (string, []api.CompilerEr
 	e := &emitter{
 		tabSize: tabSize,
 		minify:  minify,
+		errors: []api.CompilerError{},
 	}
 	e.retarget(&e.decl)
 
@@ -629,5 +645,5 @@ int main(int argc, char** argv) {
 	e.retarget(&e.source)
 	e.writeln(runtime)
 
-	return string(e.decl + e.source), []api.CompilerError{}
+	return string(e.decl + e.source), e.errors
 }
