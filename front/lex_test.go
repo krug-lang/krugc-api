@@ -1,9 +1,8 @@
 package front
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func tok(value string, kind TokenType) Token {
@@ -26,21 +25,21 @@ func tokenSetMatches(t *testing.T, a []Token, b []Token) {
 func TestCommentIgnoreToggle(t *testing.T) {
 	t.Log("Checking if comments are ignored")
 	{
-		tokens, errs := tokenizeInput("// this is a comment", true)
+		tokens, errs := TokenizeInput("// this is a comment", true)
 		assert.Empty(t, tokens)
 		assert.Empty(t, errs)
 	}
 
 	t.Log("Checking if comments are not ignored")
 	{
-		tokens, errs := tokenizeInput("// this is a comment", false)
+		tokens, errs := TokenizeInput("// this is a comment", false)
 		assert.NotEmpty(t, tokens)
 		assert.Empty(t, errs)
 	}
 }
 
 func TestLexEmptyFunction(t *testing.T) {
-	tokens, errs := tokenizeInput("fn main() int { }", false)
+	tokens, errs := TokenizeInput("fn main() int { }", false)
 	assert.Empty(t, errs)
 	tokenSetMatches(t, tokens, []Token{
 		tok("fn", Identifier),
@@ -55,7 +54,7 @@ func TestLexEmptyFunction(t *testing.T) {
 
 func TestLoopingConstructs(t *testing.T) {
 	t.Log("Testing infinite loop")
-	tokens, errs := tokenizeInput("loop { }", false)
+	tokens, errs := TokenizeInput("loop { }", false)
 	assert.Empty(t, errs)
 	tokenSetMatches(t, tokens, []Token{
 		tok("loop", Identifier),
@@ -64,7 +63,7 @@ func TestLoopingConstructs(t *testing.T) {
 	})
 
 	t.Log("Testing while loop")
-	tokens, errs = tokenizeInput(`while i < 100; i = i + 1 { printf("%d\n") }`, false)
+	tokens, errs = TokenizeInput(`while i < 100; i = i + 1 { printf("%d\n") }`, false)
 	assert.Empty(t, errs)
 	tokenSetMatches(t, tokens, []Token{
 		tok("while", Identifier),
@@ -87,7 +86,7 @@ func TestLoopingConstructs(t *testing.T) {
 }
 
 func TestLexVariable(t *testing.T) {
-	tokens, errs := tokenizeInput("let x int = 3;", false)
+	tokens, errs := TokenizeInput("let x int = 3;", false)
 	assert.Empty(t, errs)
 
 	tokenSetMatches(t, tokens, []Token{
