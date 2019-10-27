@@ -203,7 +203,7 @@ func (p *directiveParser) parseDirective() []*Directive {
 	return dirs
 }
 
-func parseDirectives(toks []Token) ([]*Directive, []api.CompilerError) {
+func ParseDirectives(toks []Token) ([]*Directive, []api.CompilerError) {
 	p := &directiveParser{parser{toks, 0, []api.CompilerError{}}}
 
 	nodes := []*Directive{}

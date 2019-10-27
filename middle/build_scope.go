@@ -200,7 +200,7 @@ func (b *builder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	return stab
 }
 
-func buildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
+func BuildScope(mod *ir.Module) (*ir.ScopeMap, []api.CompilerError) {
 	b := &builder{
 		mod,
 		nil,

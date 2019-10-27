@@ -1236,7 +1236,7 @@ func (p *astParser) parseNode() (*ParseTreeNode, bool) {
 	return res, true
 }
 
-func parseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
+func ParseTokenStream(stream []Token) ([]*ParseTreeNode, []api.CompilerError) {
 	p := &astParser{parser{stream, 0, []api.CompilerError{}}}
 	fmt.Println("parsing ...")
 

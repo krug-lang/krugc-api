@@ -2,11 +2,8 @@ package middle
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/krug-lang/caasper/api"
 	"github.com/krug-lang/caasper/ir"
 )
@@ -160,7 +157,7 @@ func calculateFunctionUsage(g *functionGraph, mod *ir.Module) []api.CompilerErro
 	return v.errs
 }
 
-func unusedFunc(mod *ir.Module, scope *ir.ScopeDict) []api.CompilerError {
+func UnusedFunc(mod *ir.Module, scope *ir.ScopeDict) []api.CompilerError {
 	g := &functionGraph{}
 	for _, fn := range mod.Functions {
 		g.addNode(fn)
@@ -184,32 +181,4 @@ func unusedFunc(mod *ir.Module, scope *ir.ScopeDict) []api.CompilerError {
 	}
 
 	return errs
-}
-
-// UnusedFunctions is a request that will check for
-// any unused functions in the given module.
-func UnusedFunctions(c *gin.Context) {
-	var req api.UnusedFunctionRequest
-	if err := c.BindJSON(&req); err != nil {
-		panic(err)
-	}
-
-	var irMod ir.Module
-	if err := jsoniter.Unmarshal([]byte(req.IRModule), &irMod); err != nil {
-		panic(err)
-	}
-
-	var scopeDict ir.ScopeDict
-	if err := jsoniter.Unmarshal([]byte(req.ScopeMap), &scopeDict); err != nil {
-		panic(err)
-	}
-
-	errs := unusedFunc(&irMod, &scopeDict)
-
-	resp := api.KrugResponse{
-		Data:   "",
-		Errors: errs,
-	}
-
-	c.JSON(http.StatusOK, &resp)
 }

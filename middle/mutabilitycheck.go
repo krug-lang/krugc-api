@@ -2,6 +2,7 @@ package middle
 
 import (
 	"fmt"
+	"github.com/krug-lang/caasper/entity"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -181,7 +182,7 @@ func mutCheck(mod *ir.Module, dict *ir.ScopeDict) []api.CompilerError {
 }
 
 func MutabilityCheck(c *gin.Context) {
-	var req api.MutabilityCheckRequest
+	var req entity.MutabilityCheckRequest
 	if err := c.BindJSON(&req); err != nil {
 		panic(err)
 	}
@@ -198,7 +199,7 @@ func MutabilityCheck(c *gin.Context) {
 
 	errs := mutCheck(&irMod, &scopeDict)
 
-	resp := api.KrugResponse{
+	resp := entity.KrugResponse{
 		Data:   "",
 		Errors: errs,
 	}

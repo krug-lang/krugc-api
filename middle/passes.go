@@ -1,16 +1,16 @@
 package middle
 
 import (
+	"github.com/krug-lang/caasper/entity"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/krug-lang/caasper/api"
-	"github.com/krug-lang/caasper/ir"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/krug-lang/caasper/ir"
 )
 
 func TypeResolve(c *gin.Context) {
-	var krugReq api.TypeResolveRequest
+	var krugReq entity.TypeResolveRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
@@ -23,7 +23,7 @@ func TypeResolve(c *gin.Context) {
 		panic(err)
 	}
 
-	resp := api.KrugResponse{
+	resp := entity.KrugResponse{
 		Data:   string(jsonIrModule),
 		Errors: errors,
 	}
@@ -31,7 +31,7 @@ func TypeResolve(c *gin.Context) {
 }
 
 func SymbolResolve(c *gin.Context) {
-	var krugReq api.SymbolResolveRequest
+	var krugReq entity.SymbolResolveRequest
 	if err := c.BindJSON(&krugReq); err != nil {
 		panic(err)
 	}
@@ -44,7 +44,7 @@ func SymbolResolve(c *gin.Context) {
 		panic(err)
 	}
 
-	resp := api.KrugResponse{
+	resp := entity.KrugResponse{
 		Data:   string(jsonMod),
 		Errors: errors,
 	}

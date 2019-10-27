@@ -9,6 +9,7 @@ package middle
 
 import (
 	"fmt"
+	"github.com/krug-lang/caasper/entity"
 	"net/http"
 	"strings"
 
@@ -323,7 +324,7 @@ func borrowCheck(mod *ir.Module, scopeDict *ir.ScopeDict) []api.CompilerError {
 }
 
 func BorrowCheck(c *gin.Context) {
-	var req api.BorrowCheckRequest
+	var req entity.BorrowCheckRequest
 	if err := c.BindJSON(&req); err != nil {
 		panic(err)
 	}
@@ -340,7 +341,7 @@ func BorrowCheck(c *gin.Context) {
 
 	errs := borrowCheck(&irMod, &scopeDict)
 
-	resp := api.KrugResponse{
+	resp := entity.KrugResponse{
 		Data:   "",
 		Errors: errs,
 	}

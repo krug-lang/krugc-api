@@ -2,42 +2,9 @@ package ir
 
 import (
 	"fmt"
-	"net/http"
-
-	jsoniter "github.com/json-iterator/go"
-
-	"github.com/gin-gonic/gin"
 	"github.com/krug-lang/caasper/api"
 	"github.com/krug-lang/caasper/front"
 )
-
-// Build takes the given []ParseTree's
-// and builds a SINGLE ir module from them.
-func Build(c *gin.Context) {
-	var irBuildReq api.IRBuildRequest
-	if err := c.BindJSON(&irBuildReq); err != nil {
-		panic(err)
-	}
-
-	var trees [][]*front.ParseTreeNode
-
-	if err := jsoniter.Unmarshal([]byte(irBuildReq.TreeNodes), &trees); err != nil {
-		panic(err)
-	}
-
-	irModule, errors := build(trees)
-
-	jsonIrModule, err := jsoniter.MarshalIndent(irModule, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	resp := api.KrugResponse{
-		Data:   string(jsonIrModule),
-		Errors: errors,
-	}
-	c.JSON(http.StatusOK, &resp)
-}
 
 type builder struct {
 	mod    *Module
@@ -631,7 +598,7 @@ func (b *builder) buildTree(m *Module, nodes []*front.ParseTreeNode) {
 	b.buildFunctions(nodes)
 }
 
-func build(trees [][]*front.ParseTreeNode) (*Module, []api.CompilerError) {
+func Build(trees [][]*front.ParseTreeNode) (*Module, []api.CompilerError) {
 	module := NewModule("main")
 
 	b := newBuilder(module)

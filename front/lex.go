@@ -263,7 +263,7 @@ func lexStart(l *lexer) stateFn {
 	}
 }
 
-func tokenizeInput(code string, skipComments bool) ([]Token, []api.CompilerError) {
+func TokenizeInput(code string, skipComments bool) ([]Token, []api.CompilerError) {
 	l := &lexer{
 		[]byte(code), 0, 0, 0, []Token{},
 		skipComments,

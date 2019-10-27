@@ -96,7 +96,7 @@ func (d *decl) visitBlock(b *ir.Block) {
 	// POP
 }
 
-func declType(scopeMap *ir.ScopeMap, mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
+func DeclType(scopeMap *ir.ScopeMap, mod *ir.Module) (*ir.TypeMap, []api.CompilerError) {
 	d := &decl{
 		mod,
 		scopeMap,

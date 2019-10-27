@@ -2,6 +2,7 @@ package back
 
 import (
 	"fmt"
+	"github.com/krug-lang/caasper/entity"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func Gen(c *gin.Context) {
-	var codeGenReq api.CodeGenerationRequest
+	var codeGenReq entity.CodeGenerationRequest
 	if err := c.BindJSON(&codeGenReq); err != nil {
 		panic(err)
 	}
@@ -39,7 +40,7 @@ func Gen(c *gin.Context) {
 		panic(err)
 	}
 
-	resp := api.KrugResponse{
+	resp := entity.KrugResponse{
 		Data:   string(genCodeResp),
 		Errors: errors,
 	}

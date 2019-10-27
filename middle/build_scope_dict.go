@@ -215,7 +215,7 @@ func (b *scopeDictBuilder) visitStructure(s *ir.Structure) *ir.SymbolTable {
 	return stab
 }
 
-func buildScopeDict(mod *ir.Module) (*ir.ScopeDict, []api.CompilerError) {
+func BuildScopeDict(mod *ir.Module) (*ir.ScopeDict, []api.CompilerError) {
 	b := &scopeDictBuilder{
 		mod,
 		nil,
